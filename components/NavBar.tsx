@@ -90,7 +90,9 @@ export default function Navbar() {
               aria-label="Toggle navigation menu"
               aria-expanded={mobileOpen}
             >
-              <span className="text-lg">{mobileOpen ? '×' : '≡'}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em]">
+                {mobileOpen ? 'Close' : 'Menu'}
+              </span>
             </button>
           </div>
         </div>
