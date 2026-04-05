@@ -38,6 +38,7 @@ body {
     radial-gradient(circle at bottom center, rgba(156, 107, 255, 0.14), transparent 30%),
     linear-gradient(180deg, #060917 0%, #040611 100%);
   background-attachment: fixed;
+  overflow-x: hidden;
 }
 
 a {

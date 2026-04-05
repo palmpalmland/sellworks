@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
+  const router = useRouter()
 
   const handleSignUp = async () => {
     const { error } = await supabase.auth.signUp({
@@ -30,7 +32,7 @@ export default function LoginPage() {
     if (error) {
       setMessage(error.message)
     } else {
-      setMessage('Login successful')
+      router.push('/dashboard')
     }
   }
 
@@ -43,24 +45,9 @@ export default function LoginPage() {
             Sign in to your content engine
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-white/62">
-            Keep generation, billing, and usage tracking inside one clean account flow.
-            Use sign in if you already have an account, or create one to start testing.
+            Marketing pages are public. The actual operator workspace only appears after
+            signup, whether you stay free or upgrade later.
           </p>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            <div className="panel rounded-[1.5rem] p-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-white/36">Auth</div>
-              <div className="mt-2 text-lg font-bold text-white">Supabase</div>
-            </div>
-            <div className="panel rounded-[1.5rem] p-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-white/36">Billing</div>
-              <div className="mt-2 text-lg font-bold text-white">Stripe-ready</div>
-            </div>
-            <div className="panel rounded-[1.5rem] p-4">
-              <div className="text-xs uppercase tracking-[0.2em] text-white/36">Flow</div>
-              <div className="mt-2 text-lg font-bold text-white">MVP to launch</div>
-            </div>
-          </div>
         </section>
 
         <section className="panel rounded-[2.2rem] p-8 md:p-10">

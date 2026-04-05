@@ -102,35 +102,25 @@ export default function GeneratePage() {
   }
 
   return (
-    <main className="section-space">
-      <div className="page-shell grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
-          <div className="eyebrow">Generation studio</div>
-          <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-            Generate launch-ready product copy
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-white/62">
-            Feed the engine a product name, a clear positioning brief, and the target
-            platform. The output panel updates when the request completes.
-          </p>
+    <main className="space-y-6 py-2">
+      <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
+        <div className="eyebrow">Generation studio</div>
+        <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
+          Generate launch-ready product copy
+        </h1>
+        <p className="mt-6 text-lg leading-8 text-white/62">
+          This page belongs to the private workspace. Public visitors see the marketing site, not the tool.
+        </p>
 
-          <div className="mt-8 rounded-[1.6rem] border border-white/10 bg-white/5 px-5 py-4">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Credit status</div>
-            <div className="mt-2 headline text-3xl font-black text-white">
-              {remaining !== null ? `${remaining} credits left` : 'Login required for credit view'}
-            </div>
+        <div className="mt-8 rounded-[1.6rem] border border-white/10 bg-white/5 px-5 py-4">
+          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Credit status</div>
+          <div className="mt-2 headline text-3xl font-black text-white">
+            {remaining !== null ? `${remaining} credits left` : 'Loading...'}
           </div>
+        </div>
+      </section>
 
-          <div className="mt-8 space-y-4">
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-white/58">
-              Best for: Amazon listings, Shopify product pages, TikTok hooks, and quick test campaigns.
-            </div>
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-white/58">
-              Tip: strong outputs usually come from clearer benefits, audience context, and offer positioning.
-            </div>
-          </div>
-        </section>
-
+      <section className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
         <section className="panel rounded-[2.2rem] p-8 md:p-10">
           <div className="space-y-4">
             <input
@@ -173,15 +163,15 @@ export default function GeneratePage() {
               {error}
             </div>
           )}
+        </section>
 
-          <div className="mt-6 rounded-[1.8rem] border border-white/10 bg-black/18 p-5">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Result</div>
-            <div className="mt-4 min-h-[240px] whitespace-pre-wrap text-sm leading-7 text-white/72">
-              {result || 'Your generated content will appear here.'}
-            </div>
+        <section className="panel rounded-[2.2rem] p-8 md:p-10">
+          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Result</div>
+          <div className="mt-4 min-h-[320px] whitespace-pre-wrap rounded-[1.8rem] border border-white/10 bg-black/18 p-5 text-sm leading-7 text-white/72">
+            {result || 'Your generated content will appear here.'}
           </div>
         </section>
-      </div>
+      </section>
     </main>
   )
 }

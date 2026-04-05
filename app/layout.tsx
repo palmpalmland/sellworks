@@ -1,6 +1,5 @@
 import "./globals.css";
 import { Manrope, Space_Grotesk } from "next/font/google";
-import Navbar from "@/components/NavBar";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -25,10 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.variable} ${spaceGrotesk.variable}`}>
-        <div className="app-shell">
-          <Navbar />
-          <main className="pt-24 md:pt-28">{children}</main>
-        </div>
+        <div className="app-shell">{children}</div>
       </body>
     </html>
   );
