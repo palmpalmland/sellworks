@@ -1,19 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-
-type Generation = {
-  id: string
-  product_name: string
-  prompt: string
-  platform: string
-  result: string
-  created_at: string
-}
+import type { ProjectRecord } from '@/lib/project-types'
 
 export default function HistoryPage() {
-  const [items, setItems] = useState<Generation[]>([])
+  const [items, setItems] = useState<ProjectRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -34,15 +27,15 @@ export default function HistoryPage() {
         }
 
         const { data, error } = await supabase
-          .from('generations')
+          .from('projects')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
 
         if (error) throw error
-        setItems(data || [])
+        setItems((data as ProjectRecord[]) || [])
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load history')
+        setError(err instanceof Error ? err.message : 'Failed to load project history')
       } finally {
         setLoading(false)
       }
@@ -54,12 +47,13 @@ export default function HistoryPage() {
   return (
     <main className="space-y-6 py-2">
       <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
-        <div className="eyebrow">Generation archive</div>
+        <div className="eyebrow">Project archive</div>
         <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-          Your output history
+          Your project history
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-8 text-white/62">
-          History only lives inside the workspace shell, with quick access from the side nav.
+          Every project becomes a reusable record. Open any one to see copy, image state, video state,
+          and the original project input.
         </p>
       </section>
 
@@ -72,42 +66,37 @@ export default function HistoryPage() {
 
       <div className="space-y-5">
         {items.map((item) => (
-          <article key={item.id} className="panel rounded-[2rem] p-6 md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-white/36">
-                  {new Date(item.created_at).toLocaleString()}
+          <Link key={item.id} href={`/projects/${item.id}`} className="block">
+            <article className="panel rounded-[2rem] p-6 transition hover:border-white/16 md:p-8">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.22em] text-white/36">
+                    {new Date(item.created_at).toLocaleString()}
+                  </div>
+                  <h2 className="headline mt-3 text-2xl font-black text-white">
+                    {item.product_name}
+                  </h2>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">
+                    {item.selling_points}
+                  </p>
                 </div>
-                <h2 className="headline mt-3 text-2xl font-black text-white">
-                  {item.product_name}
-                </h2>
-              </div>
 
-              <div className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
-                {item.platform}
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5">
-                <div className="text-xs uppercase tracking-[0.2em] text-white/36">Prompt</div>
-                <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-white/64">
-                  {item.prompt}
+                <div className="flex flex-col gap-3 md:items-end">
+                  <div className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
+                    {item.platform}
+                  </div>
+                  <div className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/60">
+                    {item.status}
+                  </div>
                 </div>
               </div>
-              <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5">
-                <div className="text-xs uppercase tracking-[0.2em] text-white/36">Result</div>
-                <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-white/74">
-                  {item.result}
-                </div>
-              </div>
-            </div>
-          </article>
+            </article>
+          </Link>
         ))}
 
         {!loading && !error && items.length === 0 && (
           <div className="panel rounded-[2rem] p-8 text-white/62">
-            No generations yet.
+            No projects yet.
           </div>
         )}
       </div>
