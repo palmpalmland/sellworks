@@ -28,7 +28,9 @@ export default function HomePage() {
   return (
     <div>
       <section className="section-space overflow-hidden pt-10 md:pt-16">
-        <div className="page-shell grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="page-shell">
+          <div className="mx-auto max-w-[1240px] px-3 sm:px-4 lg:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <div className="space-y-8">
             <div className="eyebrow">
               <span className="h-2 w-2 rounded-full bg-cyan-400" />
@@ -123,10 +125,13 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+          </div>
+        </div>
       </section>
 
       <section className="section-space pt-0">
         <div className="page-shell">
+          <div className="mx-auto max-w-[1240px] px-3 sm:px-4 lg:px-8">
           <div className="panel rounded-[2rem] px-6 py-5 md:px-8">
             <div className="grid gap-5 text-sm uppercase tracking-[0.24em] text-white/42 md:grid-cols-4">
               <div>Amazon listing copy</div>
@@ -134,6 +139,7 @@ export default function HomePage() {
               <div>TikTok hooks and scripts</div>
               <div>Plan + usage orchestration</div>
             </div>
+          </div>
           </div>
         </div>
       </section>
