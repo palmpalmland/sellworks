@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(req: Request) {
   try {
@@ -13,22 +13,43 @@ export async function GET(req: Request) {
       );
     }
 
-    const { data: existing, error: fetchError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileError) {
+      return NextResponse.json(
+        { error: profileError.message },
+        { status: 500 }
+      );
+    }
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
       .from("usage_limits")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
+
+    if (fetchError) {
+      return NextResponse.json(
+        { error: fetchError.message },
+        { status: 500 }
+      );
+    }
 
     if (existing) {
       return NextResponse.json({
         data: {
           ...existing,
+          plan: profile?.plan || "free",
           credits_remaining: existing.credits_total - existing.credits_used,
         },
       });
     }
 
-    const { data: newUsage, error: insertError } = await supabase
+    const { data: newUsage, error: insertError } = await supabaseAdmin
       .from("usage_limits")
       .insert({
         user_id: userId,
@@ -48,14 +69,17 @@ export async function GET(req: Request) {
     return NextResponse.json({
       data: {
         ...newUsage,
+        plan: profile?.plan || "free",
         credits_remaining: newUsage.credits_total - newUsage.credits_used,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("usage api error:", error);
 
     return NextResponse.json(
-      { error: error?.message || "Failed to fetch usage" },
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch usage",
+      },
       { status: 500 }
     );
   }
