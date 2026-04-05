@@ -1,5 +1,16 @@
 import "./globals.css";
-import Link from "next/link";
+import { Manrope, Space_Grotesk } from "next/font/google";
+import Navbar from "@/components/NavBar";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
 
 export const metadata = {
   title: "AI Content Factory",
@@ -13,19 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-black text-white min-h-screen">
-        <header className="border-b border-gray-800 px-6 py-4">
-          <nav className="flex gap-6">
-            <Link href="/">Home</Link>
-            <Link href="/login">Login</Link>
-            <Link href="/dashboard">Dashboard</Link>
-            <Link href="/generate">Generate</Link>
-            <Link href="/history">History</Link>
-            <Link href="/pricing">Pricing</Link>
-          </nav>
-        </header>
-
-        <main>{children}</main>
+      <body className={`${manrope.variable} ${spaceGrotesk.variable}`}>
+        <div className="app-shell">
+          <Navbar />
+          <main className="pt-24 md:pt-28">{children}</main>
+        </div>
       </body>
     </html>
   );

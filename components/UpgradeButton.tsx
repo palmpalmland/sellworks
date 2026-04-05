@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { supabase } from "@/lib/supabase";
 
 export default function UpgradeButton() {
   const [loading, setLoading] = useState(false);
@@ -49,7 +44,7 @@ export default function UpgradeButton() {
       
       window.location.href = data.url;
       
-    } catch (err) {
+    } catch {
       alert("Something went wrong");
     } finally {
       setLoading(false);
@@ -57,7 +52,11 @@ export default function UpgradeButton() {
   }
 
   return (
-    <button onClick={handleUpgrade} disabled={loading}>
+    <button
+      onClick={handleUpgrade}
+      disabled={loading}
+      className="cta-primary w-full px-6 py-4 text-sm uppercase tracking-[0.18em] disabled:cursor-not-allowed disabled:opacity-60"
+    >
       {loading ? "Redirecting..." : "Upgrade to Pro"}
     </button>
   );

@@ -11,7 +11,7 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null)
 
   useEffect(() => {
     async function loadUser() {
@@ -19,7 +19,6 @@ export default function GeneratePage() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      console.log('current user:', user)
       setUserId(user?.id || null)
     }
 
@@ -27,40 +26,26 @@ export default function GeneratePage() {
   }, [])
 
   useEffect(() => {
-    async function fetchUsage() {
-      if (!userId) return;
+    async function loadUsage() {
+      if (!userId) return
 
-      const res = await fetch(`/api/usage?userId=${userId}`);
-      const json = await res.json();
+      const res = await fetch(`/api/usage?userId=${userId}`)
+      const json = await res.json()
 
       if (res.ok && json.data) {
-        const usage = json.data;
-        setRemaining(usage.credits_total - usage.credits_used);
+        const usage = json.data
+        setRemaining(usage.credits_total - usage.credits_used)
       }
     }
 
-    fetchUsage();
-  }, [userId]);
-
-  async function fetchUsage(currentUserId: string) {
-    const res = await fetch(`/api/usage?userId=${currentUserId}`);
-    const json = await res.json();
-
-    const usage = json.data;
-    setRemaining(usage.credits_total - usage.credits_used);
-  }
+    loadUsage()
+  }, [userId])
 
   const handleGenerate = async () => {
     try {
       setLoading(true)
       setError('')
       setResult('')
-
-      console.log('Submitting request:', {
-        title: productName,
-        description: prompt,
-        platform,
-      })
 
       if (!productName.trim() || !prompt.trim() || !platform.trim()) {
         setError('Please fill in all required fields')
@@ -69,32 +54,28 @@ export default function GeneratePage() {
 
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabase.auth.getSession()
 
-      const accessToken = session?.access_token;
+      const accessToken = session?.access_token
 
       if (!accessToken) {
-        throw new Error("Please log in first");
+        throw new Error('Please log in first')
       }
 
       const res = await fetch('/api/generate-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`, // ⭐关键
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           title: productName,
           description: prompt,
           platform,
-          // ❌ 不再传 userId
         }),
       })
 
-      console.log('Response status:', res.status)
-
       const data = await res.json()
-      console.log('Response data:', data)
 
       if (!res.ok) {
         setError(data.error || 'Something went wrong')
@@ -102,79 +83,104 @@ export default function GeneratePage() {
       }
 
       setResult(data.data || 'No result')
+
       if (userId) {
-        const usageRes = await fetch(`/api/usage?userId=${userId}`);
-        const usageJson = await usageRes.json();
+        const usageRes = await fetch(`/api/usage?userId=${userId}`)
+        const usageJson = await usageRes.json()
 
         if (usageRes.ok && usageJson.data) {
-          const usage = usageJson.data;
-          setRemaining(usage.credits_total - usage.credits_used);
+          const usage = usageJson.data
+          setRemaining(usage.credits_total - usage.credits_used)
         }
       }
-      
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Frontend generate error:', err)
-      setError(err.message || 'Failed to generate')
+      setError(err instanceof Error ? err.message : 'Failed to generate')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="min-h-screen p-10">
-      <h1 className="text-3xl font-bold mb-6">Generate Content</h1>
-      
-      {remaining !== null && (
-        <p>You have {remaining} credits left</p>
-      )}
+    <main className="section-space">
+      <div className="page-shell grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
+          <div className="eyebrow">Generation studio</div>
+          <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
+            Generate launch-ready product copy
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-white/62">
+            Feed the engine a product name, a clear positioning brief, and the target
+            platform. The output panel updates when the request completes.
+          </p>
 
-      <div className="max-w-2xl space-y-4">
-        <input
-          type="text"
-          placeholder="Product name"
-          className="w-full border rounded-lg px-3 py-2"
-          value={productName}
-          onChange={(e) => setProductName(e.target.value)}
-        />
-
-        <textarea
-          placeholder="Describe your product and selling points"
-          className="w-full border rounded-lg px-3 py-2 min-h-[140px]"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-        />
-
-        <select
-          className="w-full border rounded-lg px-3 py-2"
-          value={platform}
-          onChange={(e) => setPlatform(e.target.value)}
-        >
-          <option value="Amazon">Amazon</option>
-          <option value="TikTok">TikTok</option>
-          <option value="Xiaohongshu">Xiaohongshu</option>
-          <option value="Shopify">Shopify</option>
-        </select>
-
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="rounded-lg bg-black text-white px-4 py-2 disabled:opacity-60"
-        >
-          {loading ? 'Generating...' : 'Generate'}
-        </button>
-
-        {error && (
-          <div className="text-red-500 mt-2">
-            {error}
+          <div className="mt-8 rounded-[1.6rem] border border-white/10 bg-white/5 px-5 py-4">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Credit status</div>
+            <div className="mt-2 headline text-3xl font-black text-white">
+              {remaining !== null ? `${remaining} credits left` : 'Login required for credit view'}
+            </div>
           </div>
-        )}
 
-        {result && (
-          <div className="border rounded-xl p-4 mt-6 whitespace-pre-wrap">
-            <h2 className="font-semibold mb-2">Result</h2>
-            <p>{result}</p>
+          <div className="mt-8 space-y-4">
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-white/58">
+              Best for: Amazon listings, Shopify product pages, TikTok hooks, and quick test campaigns.
+            </div>
+            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-white/58">
+              Tip: strong outputs usually come from clearer benefits, audience context, and offer positioning.
+            </div>
           </div>
-        )}
+        </section>
+
+        <section className="panel rounded-[2.2rem] p-8 md:p-10">
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Product name"
+              className="field"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+            />
+
+            <textarea
+              placeholder="Describe your product, audience, benefits, and selling points"
+              className="field min-h-[180px]"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+            />
+
+            <select
+              className="field"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+            >
+              <option value="Amazon">Amazon</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Xiaohongshu">Xiaohongshu</option>
+              <option value="Shopify">Shopify</option>
+            </select>
+
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="cta-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? 'Generating...' : 'Generate Content'}
+            </button>
+          </div>
+
+          {error && (
+            <div className="mt-5 rounded-[1.4rem] border border-red-400/20 bg-red-400/10 px-4 py-4 text-sm text-red-100">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-6 rounded-[1.8rem] border border-white/10 bg-black/18 p-5">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Result</div>
+            <div className="mt-4 min-h-[240px] whitespace-pre-wrap text-sm leading-7 text-white/72">
+              {result || 'Your generated content will appear here.'}
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   )
