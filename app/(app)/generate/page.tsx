@@ -67,9 +67,24 @@ export default function GeneratePage() {
   const [productUrl, setProductUrl] = useState('')
   const [productImages, setProductImages] = useState<File[]>([])
   const [referenceVideos, setReferenceVideos] = useState<File[]>([])
+  const [generateCopy, setGenerateCopy] = useState(true)
+  const [generateImages, setGenerateImages] = useState(true)
+  const [generateVideo, setGenerateVideo] = useState(false)
+  const [imageCount, setImageCount] = useState(2)
+  const [imageRequirements, setImageRequirements] = useState(['', ''])
+  const [videoDuration, setVideoDuration] = useState(5)
+  const [videoDescription, setVideoDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  const handleImageRequirementChange = (index: number, value: string) => {
+    setImageRequirements((current) => {
+      const next = [...current]
+      next[index] = value
+      return next
+    })
+  }
 
   const handleCreateProject = async () => {
     try {
@@ -78,6 +93,11 @@ export default function GeneratePage() {
 
       if (!productName.trim() || !sellingPoints.trim() || !platform.trim() || !style.trim()) {
         setError('Please fill in all required fields')
+        return
+      }
+
+      if (!generateCopy && !generateImages && !generateVideo) {
+        setError('Select at least one output type')
         return
       }
 
@@ -111,6 +131,15 @@ export default function GeneratePage() {
           style,
           productUrl,
           uploadedAssets,
+          generationPlan: {
+            generateCopy,
+            generateImages,
+            generateVideo,
+            imageCount,
+            imageRequirements: imageRequirements.slice(0, imageCount),
+            videoDuration,
+            videoDescription,
+          },
         }),
       })
 
@@ -134,18 +163,33 @@ export default function GeneratePage() {
       <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
         <div className="eyebrow">Create Project</div>
         <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-          Start a project, upload references, and run the generation pipeline
+          Choose exactly what this project should generate
         </h1>
         <p className="mt-6 max-w-3xl text-lg leading-8 text-white/62">
-          This flow now uploads your source assets first, then creates the project, generates
-          copy, writes image prompts, and uses your product images as visual references whenever
-          they exist.
+          Copy, images, and video are separated now. Build the project in a cleaner order:
+          product info first, then upload references, then decide which outputs to run.
         </p>
+
+        <div className="mt-8 grid gap-3 rounded-[1.8rem] border border-white/10 bg-white/5 p-4 md:grid-cols-4">
+          <div className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4 text-sm text-white/62">
+            1. Fill product info
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4 text-sm text-white/62">
+            2. Upload optional references
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4 text-sm text-white/62">
+            3. Choose outputs
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-black/18 px-4 py-4 text-sm text-white/62">
+            4. Fine-tune image or video settings
+          </div>
+        </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <section className="panel rounded-[2.2rem] p-8 md:p-10">
-          <div className="space-y-4">
+      <section className="panel rounded-[2.2rem] p-8 md:p-10">
+        <div className="space-y-8">
+          <section className="space-y-4">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Product Info</div>
             <input
               type="text"
               placeholder="Product name"
@@ -189,7 +233,10 @@ export default function GeneratePage() {
               value={productUrl}
               onChange={(e) => setProductUrl(e.target.value)}
             />
+          </section>
 
+          <section className="space-y-4">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Reference Assets</div>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="rounded-[1.5rem] border border-white/10 bg-white/4 p-4 text-sm text-white/70">
                 <div className="text-xs uppercase tracking-[0.2em] text-white/36">Product Images</div>
@@ -219,40 +266,118 @@ export default function GeneratePage() {
                 </div>
               </label>
             </div>
+          </section>
 
-            <button
-              onClick={handleCreateProject}
-              disabled={loading}
-              className="cta-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Uploading and creating project...' : 'Create Project'}
-            </button>
-          </div>
-
-          {error && (
-            <div className="mt-5 rounded-[1.4rem] border border-red-400/20 bg-red-400/10 px-4 py-4 text-sm text-red-100">
-              {error}
+          <section className="space-y-4">
+            <div className="text-xs uppercase tracking-[0.2em] text-white/36">Output Selection</div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="rounded-[1.2rem] border border-white/10 bg-black/18 px-4 py-4 text-sm text-white/75">
+                <input
+                  type="checkbox"
+                  checked={generateCopy}
+                  onChange={(e) => setGenerateCopy(e.target.checked)}
+                  className="mr-3"
+                />
+                Generate Copy
+              </label>
+              <label className="rounded-[1.2rem] border border-white/10 bg-black/18 px-4 py-4 text-sm text-white/75">
+                <input
+                  type="checkbox"
+                  checked={generateImages}
+                  onChange={(e) => setGenerateImages(e.target.checked)}
+                  className="mr-3"
+                />
+                Generate Images
+              </label>
+              <label className="rounded-[1.2rem] border border-white/10 bg-black/18 px-4 py-4 text-sm text-white/75">
+                <input
+                  type="checkbox"
+                  checked={generateVideo}
+                  onChange={(e) => setGenerateVideo(e.target.checked)}
+                  className="mr-3"
+                />
+                Generate Video
+              </label>
             </div>
+          </section>
+
+          {(generateImages || generateVideo) && (
+            <section className="space-y-4">
+              <div className="text-xs uppercase tracking-[0.2em] text-white/36">Output Setup</div>
+
+              {generateImages && (
+                <div className="rounded-[1.6rem] border border-white/10 bg-white/4 p-5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="text-sm font-semibold text-white">Image Setup</div>
+                    <select
+                      className="field max-w-[180px]"
+                      value={imageCount}
+                      onChange={(e) => setImageCount(Number(e.target.value))}
+                    >
+                      <option value={1}>1 image</option>
+                      <option value={2}>2 images</option>
+                    </select>
+                  </div>
+                  <div className="mt-4 space-y-4">
+                    {Array.from({ length: imageCount }).map((_, index) => (
+                      <textarea
+                        key={index}
+                        placeholder={`Optional requirement for image ${index + 1}`}
+                        className="field min-h-[120px]"
+                        value={imageRequirements[index]}
+                        onChange={(e) => handleImageRequirementChange(index, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {generateVideo && (
+                <div className="rounded-[1.6rem] border border-white/10 bg-white/4 p-5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="text-sm font-semibold text-white">Video Setup</div>
+                    <select
+                      className="field max-w-[180px]"
+                      value={videoDuration}
+                      onChange={(e) => setVideoDuration(Number(e.target.value))}
+                    >
+                      <option value={2}>2 seconds</option>
+                      <option value={5}>5 seconds</option>
+                      <option value={8}>8 seconds</option>
+                      <option value={10}>10 seconds</option>
+                    </select>
+                  </div>
+                  <div className="mt-4 text-sm leading-7 text-white/55">
+                    Longer videos usually take longer to generate and consume more tokens.
+                  </div>
+                  <textarea
+                    placeholder="Optional video description to further define mood, camera movement, pacing, scenes, or CTA"
+                    className="field mt-4 min-h-[120px]"
+                    value={videoDescription}
+                    onChange={(e) => setVideoDescription(e.target.value)}
+                  />
+                  <div className="mt-3 text-xs leading-6 text-white/45">
+                    Product images stay as reference assets for the project. They are not automatically treated as the first frame.
+                  </div>
+                </div>
+              )}
+            </section>
           )}
-        </section>
 
-        <section className="panel rounded-[2.2rem] p-8 md:p-10">
-          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Pipeline</div>
-          <div className="mt-4 space-y-4">
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-white/65">
-              1. Upload product images and reference videos to Supabase Storage
-            </div>
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-white/65">
-              2. Create project and save uploaded asset metadata
-            </div>
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-white/65">
-              3. Generate copy and image prompts
-            </div>
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-white/65">
-              4. Use product images as references for text-to-image or image-to-image generation
-            </div>
+          <button
+            onClick={handleCreateProject}
+            disabled={loading}
+            className="cta-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? 'Uploading and creating project...' : 'Create Project'}
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-5 rounded-[1.4rem] border border-red-400/20 bg-red-400/10 px-4 py-4 text-sm text-red-100">
+            {error}
           </div>
-        </section>
+        )}
       </section>
     </main>
   )

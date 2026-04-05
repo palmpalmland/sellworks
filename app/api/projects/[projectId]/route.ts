@@ -2,10 +2,20 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromBearerRequest } from "@/lib/server-auth";
 import { PROJECT_ASSETS_BUCKET } from "@/lib/project-storage";
+import { fetchSeedanceTask } from "@/lib/seedance";
 
 type OutputImageRecord = {
   storagePath?: string;
   url?: string | null;
+  [key: string]: unknown;
+};
+
+type VideoTaskRecord = {
+  externalTaskId?: string | null;
+  status?: string;
+  resultUrl?: string | null;
+  lastFrameUrl?: string | null;
+  note?: string;
   [key: string]: unknown;
 };
 
@@ -142,6 +152,113 @@ export async function GET(
         },
       };
     });
+
+    const videoOutput = hydratedOutputs.find((output) => output.output_type === "video");
+
+    if (videoOutput && Array.isArray(videoOutput.meta?.tasks)) {
+      const refreshedTasks = await Promise.all(
+        videoOutput.meta.tasks.map(async (task: unknown) => {
+          if (
+            typeof task !== "object" ||
+            !task ||
+            !("externalTaskId" in task) ||
+            typeof task.externalTaskId !== "string" ||
+            !task.externalTaskId
+          ) {
+            return task;
+          }
+
+          const typedTask = task as VideoTaskRecord;
+          const externalTaskId = typedTask.externalTaskId;
+
+          if (!externalTaskId) {
+            return typedTask;
+          }
+
+          if (typedTask.status === "succeeded" || typedTask.status === "failed") {
+            return typedTask;
+          }
+
+          try {
+            const result = await fetchSeedanceTask(externalTaskId);
+
+            return {
+              ...typedTask,
+              status: result.status,
+              model: result.model || typedTask.model || null,
+              resultUrl: result.content?.video_url || null,
+              lastFrameUrl: result.content?.last_frame_url || null,
+              note:
+                result.error?.message ||
+                (result.status === "succeeded"
+                  ? "Video generated successfully."
+                  : `Video task is ${result.status}.`),
+            };
+          } catch (error: unknown) {
+            return {
+              ...typedTask,
+              note:
+                error instanceof Error
+                  ? error.message
+                  : typedTask.note || "Failed to refresh video task.",
+            };
+          }
+        })
+      );
+
+      const refreshedState = refreshedTasks.some(
+        (task) => typeof task === "object" && task && task.status === "succeeded"
+      )
+        ? "completed"
+        : refreshedTasks.some(
+              (task) =>
+                typeof task === "object" &&
+                task &&
+                (task.status === "queued" || task.status === "running")
+            )
+          ? "processing"
+          : "failed";
+
+      const refreshedVideoOutput = {
+        ...videoOutput,
+        status: refreshedState,
+        meta: {
+          ...(videoOutput.meta || {}),
+          state: refreshedState,
+          tasks: refreshedTasks,
+          note:
+            refreshedState === "completed"
+              ? "At least one video task succeeded."
+              : refreshedState === "processing"
+                ? "Video tasks are still running."
+                : "Video tasks failed or have no successful result yet.",
+        },
+      };
+
+      await supabaseAdmin
+        .from("project_outputs")
+        .update({
+          status: refreshedVideoOutput.status,
+          meta: refreshedVideoOutput.meta,
+        })
+        .eq("id", videoOutput.id);
+
+      const refreshedProjectStatus =
+        refreshedState === "completed" || refreshedState === "failed"
+          ? "completed"
+          : "processing";
+
+      await supabaseAdmin
+        .from("projects")
+        .update({ status: refreshedProjectStatus })
+        .eq("id", projectId);
+
+      const outputIndex = hydratedOutputs.findIndex((output) => output.id === videoOutput.id);
+      if (outputIndex >= 0) {
+        hydratedOutputs[outputIndex] = refreshedVideoOutput;
+      }
+      project.status = refreshedProjectStatus;
+    }
 
     return NextResponse.json({
       data: {

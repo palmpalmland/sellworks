@@ -22,6 +22,8 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let cancelled = false
+
     const loadProject = async () => {
       try {
         const {
@@ -44,20 +46,32 @@ export default function ProjectDetailPage() {
         const json = await res.json()
 
         if (!res.ok) {
-          setError(json.error || 'Failed to load project')
+          if (!cancelled) {
+            setError(json.error || 'Failed to load project')
+          }
           return
         }
 
-        setProjectData(json.data)
+        if (!cancelled) {
+          setProjectData(json.data)
+        }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load project')
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load project')
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     if (params.id) {
       loadProject()
+    }
+
+    return () => {
+      cancelled = true
     }
   }, [params.id])
 
@@ -91,6 +105,26 @@ export default function ProjectDetailPage() {
         error?: string
       }>)
     : []
+  const videoPromptList = Array.isArray(videoOutput?.meta?.prompts)
+    ? (videoOutput?.meta?.prompts as Array<{
+        title?: string
+        prompt?: string
+        shotPlan?: string
+      }>)
+    : []
+  const videoTasks = Array.isArray(videoOutput?.meta?.tasks)
+    ? (videoOutput?.meta?.tasks as Array<{
+        id?: string
+        title?: string
+        prompt?: string
+        shotPlan?: string
+        status?: string
+        provider?: string | null
+        model?: string | null
+        resultUrl?: string | null
+        note?: string
+      }>)
+    : []
   const productImageAssets = projectData.assets.filter((item) => item.asset_type === 'product_image')
   const referenceVideoAssets = projectData.assets.filter((item) => item.asset_type === 'reference_video')
 
@@ -109,7 +143,7 @@ export default function ProjectDetailPage() {
       <section className="panel rounded-[2rem] p-6 md:p-8">
         <div className="text-xs uppercase tracking-[0.2em] text-white/36">Copy</div>
         <div className="mt-5 whitespace-pre-wrap rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-sm leading-7 text-white/74">
-          {copyOutput?.content || 'No copy generated yet.'}
+          {copyOutput?.content || 'Copy was not requested for this project.'}
         </div>
       </section>
 
@@ -124,7 +158,9 @@ export default function ProjectDetailPage() {
           <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-sm leading-7 text-white/60">
             {typeof imageOutput?.meta?.note === 'string'
               ? imageOutput.meta.note
-              : 'Image generation placeholder created.'}
+              : imageOutput
+                ? 'Image generation placeholder created.'
+                : 'Images were not requested for this project.'}
           </div>
 
           <div className="rounded-[1.5rem] border border-white/8 bg-white/4 p-5">
@@ -168,7 +204,9 @@ export default function ProjectDetailPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-white/50">No image prompts generated yet.</div>
+                <div className="text-sm text-white/50">
+                  {imageOutput ? 'No image prompts generated yet.' : 'No image prompts because images were not requested.'}
+                </div>
               )}
             </div>
           </div>
@@ -199,7 +237,9 @@ export default function ProjectDetailPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-white/50">No generated images yet.</div>
+                <div className="text-sm text-white/50">
+                  {imageOutput ? 'No generated images yet.' : 'No generated images because images were not requested.'}
+                </div>
               )}
             </div>
           </div>
@@ -210,13 +250,87 @@ export default function ProjectDetailPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="text-xs uppercase tracking-[0.2em] text-white/36">Video</div>
           <div className="text-xs uppercase tracking-[0.18em] text-white/35">
-            Uploaded references: {referenceVideoAssets.length}
+            Uploaded references: {referenceVideoAssets.length} | Tasks: {videoTasks.length} | Duration: {typeof videoOutput?.meta?.duration === 'number' ? `${videoOutput.meta.duration}s` : 'default'}
           </div>
         </div>
+        {typeof videoOutput?.meta?.description === 'string' && videoOutput.meta.description.trim() && (
+          <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-sm leading-7 text-white/60">
+            Video description: {videoOutput.meta.description}
+          </div>
+        )}
         <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/4 p-5 text-sm leading-7 text-white/60">
           {typeof videoOutput?.meta?.note === 'string'
             ? videoOutput.meta.note
-            : 'Video generation placeholder created.'}
+            : videoOutput
+              ? 'Video generation placeholder created.'
+              : 'Video was not requested for this project.'}
+        </div>
+        <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/4 p-5">
+          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Video Prompts</div>
+          <div className="mt-4 space-y-4">
+            {videoPromptList.length > 0 ? (
+              videoPromptList.map((item, index) => (
+                <div key={`${item.title}-${index}`} className="rounded-[1.2rem] border border-white/8 bg-black/18 p-4">
+                  <div className="text-sm font-semibold text-white">
+                    {item.title || `Video Prompt ${index + 1}`}
+                  </div>
+                  <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white/62">
+                    {item.prompt}
+                  </div>
+                  {item.shotPlan && (
+                    <div className="mt-3 whitespace-pre-wrap rounded-[1rem] border border-white/8 bg-white/4 px-4 py-3 text-xs leading-6 text-white/50">
+                      Shot plan: {item.shotPlan}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-white/50">
+                {videoOutput ? 'No video prompts generated yet.' : 'No video prompts because video was not requested.'}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/4 p-5">
+          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Video Tasks</div>
+          <div className="mt-4 space-y-4">
+            {videoTasks.length > 0 ? (
+              videoTasks.map((item, index) => (
+                <div key={item.id || `${item.title}-${index}`} className="rounded-[1.2rem] border border-white/8 bg-black/18 p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div className="text-sm font-semibold text-white">
+                      {item.title || `Video Task ${index + 1}`}
+                    </div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-white/45">
+                      {item.status || 'pending'}
+                    </div>
+                  </div>
+                  <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-white/62">
+                    {item.prompt}
+                  </div>
+                  {item.shotPlan && (
+                    <div className="mt-3 whitespace-pre-wrap text-xs leading-6 text-white/50">
+                      Shot plan: {item.shotPlan}
+                    </div>
+                  )}
+                  <div className="mt-3 text-xs text-white/40">
+                    {item.note || 'No execution note yet.'}
+                  </div>
+                  {item.resultUrl && (
+                    <video
+                      src={item.resultUrl}
+                      controls
+                      className="mt-4 w-full rounded-[1rem] border border-white/8 bg-black/30"
+                    />
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-white/50">
+                {videoOutput ? 'No video tasks yet.' : 'No video tasks because video was not requested.'}
+              </div>
+            )}
+          </div>
         </div>
         {referenceVideoAssets.length > 0 && (
           <div className="mt-5 space-y-3">

@@ -5,12 +5,14 @@ import {
   generateEcommerceCopy,
   generateImagePrompts,
   generateImagesFromPrompts,
+  generateVideoPrompts,
 } from "@/lib/byteplus";
 import {
   buildProjectAssetPath,
   PROJECT_ASSETS_BUCKET,
   type UploadedProjectAsset,
 } from "@/lib/project-storage";
+import { createSeedanceTask } from "@/lib/seedance";
 import { getUsage, incrementUsage, logUsage } from "@/lib/usage";
 
 type PersistedGeneratedImage = {
@@ -20,6 +22,16 @@ type PersistedGeneratedImage = {
   storagePath?: string;
   revisedPrompt?: string;
   error?: string;
+};
+
+type GenerationPlan = {
+  generateCopy: boolean;
+  generateImages: boolean;
+  generateVideo: boolean;
+  imageCount?: number;
+  imageRequirements?: string[];
+  videoDuration?: number;
+  videoDescription?: string;
 };
 
 async function createSignedUrlMap(storagePaths: string[], expiresIn = 60 * 60) {
@@ -131,6 +143,7 @@ export async function POST(req: Request) {
       style,
       productUrl,
       uploadedAssets,
+      generationPlan,
     } = body as {
       productName?: string;
       sellingPoints?: string;
@@ -138,11 +151,31 @@ export async function POST(req: Request) {
       style?: string;
       productUrl?: string;
       uploadedAssets?: UploadedProjectAsset[];
+      generationPlan?: GenerationPlan;
     };
 
     if (!productName || !sellingPoints || !platform || !style) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const plan = {
+      generateCopy: Boolean(generationPlan?.generateCopy),
+      generateImages: Boolean(generationPlan?.generateImages),
+      generateVideo: Boolean(generationPlan?.generateVideo),
+      imageCount: Math.min(Math.max(generationPlan?.imageCount || 1, 1), 2),
+      imageRequirements: (generationPlan?.imageRequirements || []).slice(0, 2),
+      videoDuration: [2, 5, 8, 10].includes(generationPlan?.videoDuration || 0)
+        ? generationPlan?.videoDuration
+        : 5,
+      videoDescription: generationPlan?.videoDescription?.trim() || "",
+    };
+
+    if (!plan.generateCopy && !plan.generateImages && !plan.generateVideo) {
+      return NextResponse.json(
+        { error: "Select at least one generation type" },
         { status: 400 }
       );
     }
@@ -210,54 +243,74 @@ export async function POST(req: Request) {
     const referenceImageUrls = productImagePaths
       .map((path) => referenceImageUrlMap.get(path))
       .filter((item): item is string => Boolean(item));
+    const referenceVideoCount = normalizedAssets.filter(
+      (asset) => asset.assetType === "reference_video"
+    ).length;
 
-    const copy = await generateEcommerceCopy({
-      title: productName,
-      description: sellingPoints,
-      platform,
-      style,
-      productUrl,
-    });
+    const internalCopy =
+      plan.generateCopy || plan.generateImages || plan.generateVideo
+        ? await generateEcommerceCopy({
+            title: productName,
+            description: sellingPoints,
+            platform,
+            style,
+            productUrl,
+          })
+        : null;
 
-    const imagePrompts = await generateImagePrompts({
-      title: productName,
-      sellingPoints,
-      platform,
-      style,
-      productUrl,
-      copy,
-      referenceImageCount: productImagePaths.length,
-    });
+    const outputs: Array<Record<string, unknown>> = [];
 
-    const imageGeneration = await generateImagesFromPrompts(imagePrompts, {
-      referenceImages: referenceImageUrls,
-    });
-
-    const persistedImages = await persistGeneratedImages({
-      userId: user.id,
-      projectId: project.id,
-      images: imageGeneration.images,
-    });
-
-    const outputs = [
-      {
+    if (plan.generateCopy && internalCopy) {
+      outputs.push({
         project_id: project.id,
         output_type: "copy",
         title: "Generated Copy",
-        content: copy,
+        content: internalCopy,
         status: "completed",
-      },
-      {
+      });
+    }
+
+    let imageStatus = "skipped";
+
+    if (plan.generateImages && internalCopy) {
+      const imagePrompts = await generateImagePrompts({
+        title: productName,
+        sellingPoints,
+        platform,
+        style,
+        productUrl,
+        copy: internalCopy,
+        referenceImageCount: productImagePaths.length,
+        desiredCount: plan.imageCount,
+        imageRequirements: plan.imageRequirements,
+      });
+
+      const imageGeneration = await generateImagesFromPrompts(imagePrompts, {
+        referenceImages: referenceImageUrls,
+      });
+
+      const persistedImages = await persistGeneratedImages({
+        userId: user.id,
+        projectId: project.id,
+        images: imageGeneration.images,
+      });
+
+      imageStatus = imageGeneration.status;
+
+      outputs.push({
         project_id: project.id,
         output_type: "image_prompt",
         title: "Image Prompts",
         content: imagePrompts.map((item) => `${item.title}\n${item.prompt}`).join("\n\n"),
         meta: {
           prompts: imagePrompts,
+          requestedCount: plan.imageCount,
+          requirements: plan.imageRequirements,
         },
         status: "completed",
-      },
-      {
+      });
+
+      outputs.push({
         project_id: project.id,
         output_type: "image",
         title: "Generated Images",
@@ -268,21 +321,107 @@ export async function POST(req: Request) {
           generationMode: referenceImageUrls.length > 0 ? "image-to-image" : "text-to-image",
           prompts: imagePrompts,
           images: persistedImages,
+          requestedCount: plan.imageCount,
+          requirements: plan.imageRequirements,
         },
         status: imageGeneration.status,
-      },
-      {
+      });
+    }
+
+    if (plan.generateVideo && internalCopy) {
+      const imagePromptContext = plan.generateImages
+        ? await generateImagePrompts({
+            title: productName,
+            sellingPoints,
+            platform,
+            style,
+            productUrl,
+            copy: internalCopy,
+            referenceImageCount: productImagePaths.length,
+            desiredCount: plan.imageCount,
+            imageRequirements: plan.imageRequirements,
+          })
+        : [];
+
+      const videoPrompts = await generateVideoPrompts({
+        title: productName,
+        sellingPoints,
+        platform,
+        style,
+        productUrl,
+        copy: internalCopy,
+        imagePrompts: imagePromptContext,
+        referenceVideoCount,
+        videoDescription: plan.videoDescription,
+        videoDuration: plan.videoDuration,
+      });
+
+      const videoTasks = await Promise.all(
+        videoPrompts.map(async (item, index) => {
+          try {
+            const task = await createSeedanceTask({
+              prompt: item.prompt,
+              ratio: "16:9",
+              duration: plan.videoDuration,
+            });
+
+            return {
+              id: `${project.id}-video-${index + 1}`,
+              title: item.title,
+              prompt: item.prompt,
+              shotPlan: item.shotPlan,
+              status: task.status,
+              provider: "seedance",
+              model: task.model,
+              externalTaskId: task.id,
+              mode: "text-to-video",
+              duration: plan.videoDuration,
+              resultUrl: null,
+              lastFrameUrl: null,
+              note: "Seedance task created successfully in text-to-video mode.",
+            };
+          } catch (error: unknown) {
+            return {
+              id: `${project.id}-video-${index + 1}`,
+              title: item.title,
+              prompt: item.prompt,
+              shotPlan: item.shotPlan,
+              status: "failed",
+              provider: "seedance",
+              model: "doubao-seedance-1-0-pro-250528",
+              externalTaskId: null,
+              mode: "text-to-video",
+              duration: plan.videoDuration,
+              resultUrl: null,
+              lastFrameUrl: null,
+              note:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to create Seedance task.",
+            };
+          }
+        })
+      );
+
+      outputs.push({
         project_id: project.id,
         output_type: "video",
-        title: "Video",
-        content: null,
+        title: "Video Prompts",
+        content: videoPrompts
+          .map((item) => `${item.title}\n${item.prompt}\n${item.shotPlan || ""}`.trim())
+          .join("\n\n"),
         meta: {
-          state: "pending",
-          note: "Video generation will be connected in the next step.",
+          state: videoTasks.some((task) => task.status === "queued") ? "queued" : "failed",
+          note:
+            "Video tasks created in text-to-video mode. Uploaded product images are kept as references only and are not forced into the first frame.",
+          duration: plan.videoDuration,
+          description: plan.videoDescription,
+          prompts: videoPrompts,
+          tasks: videoTasks,
         },
-        status: "pending",
-      },
-    ];
+        status: videoTasks.some((task) => task.status === "queued") ? "queued" : "failed",
+      });
+    }
 
     const { error: outputError } = await supabaseAdmin
       .from("project_outputs")
@@ -295,10 +434,10 @@ export async function POST(req: Request) {
       );
     }
 
-    await supabaseAdmin
-      .from("projects")
-      .update({ status: imageGeneration.status === "completed" ? "completed" : "processing" })
-      .eq("id", project.id);
+    const projectStatus =
+      plan.generateVideo ? "processing" : imageStatus === "pending" ? "processing" : "completed";
+
+    await supabaseAdmin.from("projects").update({ status: projectStatus }).eq("id", project.id);
 
     await incrementUsage(user.id, 1);
     await logUsage(user.id, "project_copy", 1);

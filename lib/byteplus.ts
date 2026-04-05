@@ -10,6 +10,12 @@ type ImagePrompt = {
   prompt: string;
 };
 
+type VideoPrompt = {
+  title: string;
+  prompt: string;
+  shotPlan?: string;
+};
+
 type GeneratedImage = {
   title: string;
   prompt: string;
@@ -42,6 +48,23 @@ function tryParsePromptJson(text: string): ImagePrompt[] | null {
       .map((item) => ({
         title: String(item.title),
         prompt: String(item.prompt),
+      }));
+  } catch {
+    return null;
+  }
+}
+
+function tryParseVideoPromptJson(text: string): VideoPrompt[] | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return null;
+
+    return parsed
+      .filter((item) => item?.title && item?.prompt)
+      .map((item) => ({
+        title: String(item.title),
+        prompt: String(item.prompt),
+        shotPlan: item?.shotPlan ? String(item.shotPlan) : undefined,
       }));
   } catch {
     return null;
@@ -101,6 +124,8 @@ export async function generateImagePrompts(params: {
   productUrl?: string;
   copy: string;
   referenceImageCount?: number;
+  desiredCount?: number;
+  imageRequirements?: string[];
 }) {
   const {
     title,
@@ -110,12 +135,14 @@ export async function generateImagePrompts(params: {
     productUrl,
     copy,
     referenceImageCount = 0,
+    desiredCount = 2,
+    imageRequirements = [],
   } = params;
 
   const prompt = `
 You are an ecommerce creative director.
 
-Create 2 image-generation prompts for a product campaign.
+Create ${desiredCount} image-generation prompts for a product campaign.
 
 Product name: ${title}
 Selling points: ${sellingPoints}
@@ -123,6 +150,9 @@ Platform: ${platform}
 Style: ${style || "default"}
 Product URL: ${productUrl || "not provided"}
 Reference image count: ${referenceImageCount}
+Requested image count: ${desiredCount}
+Per-image requirements:
+${imageRequirements.map((item, index) => `Image ${index + 1}: ${item || "No extra requirement"}`).join("\n")}
 
 Generated copy:
 ${copy}
@@ -161,7 +191,103 @@ Each prompt should be detailed, visual, ecommerce-friendly, and ready for a text
   return [
     {
       title: "Hero image",
-      prompt: `Premium ecommerce hero shot for ${title}. Style: ${style || "clean commercial"}. Platform: ${platform}. Selling points: ${sellingPoints}.`,
+      prompt: `Premium ecommerce hero shot for ${title}. Style: ${style || "clean commercial"}. Platform: ${platform}. Selling points: ${sellingPoints}. ${imageRequirements[0] || ""}`.trim(),
+    },
+    ...(desiredCount > 1
+      ? [
+          {
+            title: "Lifestyle image",
+            prompt: `Lifestyle commercial image for ${title}. Platform: ${platform}. Show the product in use and highlight ${sellingPoints}. ${imageRequirements[1] || ""}`.trim(),
+          },
+        ]
+      : []),
+  ];
+}
+
+export async function generateVideoPrompts(params: {
+  title: string;
+  sellingPoints: string;
+  platform: string;
+  style?: string;
+  productUrl?: string;
+  copy: string;
+  imagePrompts: ImagePrompt[];
+  referenceVideoCount?: number;
+  videoDescription?: string;
+  videoDuration?: number;
+}) {
+  const {
+    title,
+    sellingPoints,
+    platform,
+    style,
+    productUrl,
+    copy,
+    imagePrompts,
+    referenceVideoCount = 0,
+    videoDescription,
+    videoDuration = 5,
+  } = params;
+
+  const prompt = `
+You are an ecommerce video creative strategist.
+
+Create 1 short-form video generation prompt for a product campaign.
+The prompt should fit a ${videoDuration}-second video.
+
+Product name: ${title}
+Selling points: ${sellingPoints}
+Platform: ${platform}
+Style: ${style || "default"}
+Product URL: ${productUrl || "not provided"}
+Reference video count: ${referenceVideoCount}
+Optional video description: ${videoDescription || "not provided"}
+
+Generated copy:
+${copy}
+
+Image prompts:
+${imagePrompts.map((item) => `${item.title}: ${item.prompt}`).join("\n")}
+
+Return ONLY valid JSON as an array like:
+[
+  {
+    "title": "Primary video",
+    "prompt": "...",
+    "shotPlan": "..."
+  }
+]
+
+The prompt should be ready for a short-form commercial video model. Keep it visual, concrete, and conversion-focused.
+`;
+
+  const response = await client.responses.create({
+    model: process.env.ARK_MODEL || "",
+    input: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "input_text",
+            text: prompt,
+          },
+        ],
+      },
+    ],
+  });
+
+  const text = extractOutputText(response) || "[]";
+  const parsed = tryParseVideoPromptJson(text);
+
+  if (parsed && parsed.length > 0) {
+    return parsed;
+  }
+
+  return [
+    {
+      title: "Primary video",
+      prompt: `Create a ${videoDuration}-second short-form commercial video for ${title} on ${platform}. Style: ${style || "performance marketing"}. Focus on ${sellingPoints}. ${videoDescription || ""}`.trim(),
+      shotPlan: `Open with a fast product hook, move through the strongest benefit, and close with a CTA within ${videoDuration} seconds.`,
     },
   ];
 }
