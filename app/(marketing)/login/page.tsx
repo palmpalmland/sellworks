@@ -40,13 +40,13 @@ export default function LoginPage() {
     <div className="section-space">
       <div className="page-shell grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
         <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
-          <div className="eyebrow">Access your workspace</div>
+          <div className="eyebrow">Access Sellworks</div>
           <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-            Sign in to your content engine
+            Sign in to your Sellworks workspace
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-white/62">
-            Marketing pages are public. The actual operator workspace only appears after
-            signup, whether you stay free or upgrade later.
+            Public pages explain the product. Your private Sellworks workspace is where
+            you generate product listing copy, Amazon-ready images, and TikTok ad creatives.
           </p>
         </section>
 
@@ -55,7 +55,7 @@ export default function LoginPage() {
             Account access
           </div>
           <div className="mt-3 headline text-3xl font-black text-white">
-            Continue building momentum
+            Start generating content kits
           </div>
 
           <div className="mt-8 space-y-4">

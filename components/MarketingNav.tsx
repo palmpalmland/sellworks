@@ -20,56 +20,56 @@ export default function MarketingNav() {
   }, [])
 
   const links = [
-    { href: '/#overview', label: 'Overview' },
-    { href: '/#features', label: 'Features' },
-    { href: '/#categories', label: 'Categories' },
+    { href: '/#product', label: 'Product' },
+    { href: '/#demo', label: 'Demo' },
     { href: '/pricing', label: 'Pricing' },
   ]
 
-  const linkClassName = (href: string) =>
-    pathname === href || (pathname === '/' && href !== '/pricing' && href.startsWith('/#'))
-      ? 'rounded-full border border-white/12 bg-white/10 px-4 py-2 text-white'
-      : 'rounded-full px-4 py-2 text-white/72 transition hover:bg-white/6 hover:text-white'
+  const isActive = (href: string) =>
+    pathname === href || (pathname === '/' && href.startsWith('/#'))
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#060917]/70 backdrop-blur-xl">
-      <div className="page-shell flex items-center justify-between gap-4 py-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#32c8ff_0%,#6d7cff_48%,#9c6bff_100%)] text-lg font-black text-white shadow-[0_12px_30px_rgba(109,124,255,0.35)]">
-            AC
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-[#050816]/60 backdrop-blur-xl">
+      <div className="page-shell flex items-center justify-between gap-4 py-5">
+        <Link href="/" className="group flex items-center gap-3">
+          <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] transition-transform duration-500 group-hover:rotate-12">
+            <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
           </div>
-          <div>
-            <div className="headline text-lg font-black text-white md:text-xl">
-              AI Content Engine
-            </div>
-            <div className="text-xs uppercase tracking-[0.24em] text-white/45">
-              Ecommerce content stack
-            </div>
+          <div className="headline text-2xl font-black tracking-tight text-white">
+            Sellworks
           </div>
         </Link>
 
-        <div className="hidden items-center gap-2 text-sm font-semibold md:flex">
+        <div className="hidden items-center gap-6 md:flex">
           {links.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClassName(item.href)}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={
+                isActive(item.href)
+                  ? 'text-sm font-black uppercase tracking-[0.2em] text-white'
+                  : 'text-sm font-black uppercase tracking-[0.2em] text-white/52 transition hover:text-white'
+              }
+            >
               {item.label}
             </Link>
           ))}
-        </div>
-
-        <div className="flex items-center gap-3">
           {user ? (
-            <Link href="/dashboard" className="cta-primary px-4 py-3 text-sm">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border border-[#d7dced] bg-[#f5f7ff] px-7 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#0b1020] shadow-[0_10px_30px_rgba(255,255,255,0.12)] transition hover:bg-white"
+              style={{ color: "#0b1020" }}
+            >
               Open Workspace
             </Link>
           ) : (
-            <>
-              <Link href="/login" className={pathname === '/login' ? 'cta-secondary px-4 py-3 text-sm ring-1 ring-white/18' : 'cta-secondary px-4 py-3 text-sm'}>
-                Login
-              </Link>
-              <Link href="/pricing" className="cta-primary px-4 py-3 text-sm">
-                Start Free
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border border-[#d7dced] bg-[#f5f7ff] px-7 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#0b1020] shadow-[0_10px_30px_rgba(255,255,255,0.12)] transition hover:bg-white"
+              style={{ color: "#0b1020" }}
+            >
+              Start Free
+            </Link>
           )}
         </div>
       </div>

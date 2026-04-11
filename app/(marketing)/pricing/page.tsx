@@ -1,71 +1,97 @@
 import PricingAction from "@/components/PricingAction";
 
+const plans = [
+  {
+    name: "Free",
+    price: "$0",
+    subtitle: "Try Sellworks for free",
+    items: ["1 product kit", "Standard resolution", "Basic support"],
+    highlight: false,
+  },
+  {
+    name: "Starter",
+    price: "$19",
+    subtitle: "For small sellers",
+    items: ["10 product kits", "High resolution", "Priority support", "No watermarks"],
+    highlight: false,
+  },
+  {
+    name: "Growth",
+    price: "$49",
+    subtitle: "Our most popular plan",
+    items: ["50 product kits", "4K resolution", "Dedicated account manager", "Custom branding"],
+    highlight: true,
+  },
+  {
+    name: "Scale",
+    price: "$99",
+    subtitle: "For high-volume brands",
+    items: ["Unlimited kits (fair use)", "API access", "White-label options", "24/7 support"],
+    highlight: false,
+  },
+];
+
 export default function PricingPage() {
   return (
     <div className="section-space">
       <div className="page-shell">
         <section className="mb-10 text-center">
-          <div className="eyebrow">Monetization</div>
+          <div className="eyebrow">Simple, Transparent Pricing</div>
           <h1 className="headline mt-6 text-5xl font-black text-white md:text-7xl">
-            Public pricing page, upgrade inside the workspace
+            High-volume content.
+            <br />
+            <span className="gradient-text">Low cost.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-white/62">
-            Anyone can view your plans. Logged-in users can upgrade right here without
-            leaving the product flow.
+            Sellworks pricing stays public for discovery. Logged-in users can still
+            upgrade without leaving the product flow.
           </p>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="panel rounded-[2.2rem] p-8 md:p-10">
-            <div className="text-xs uppercase tracking-[0.24em] text-white/38">Free</div>
-            <h2 className="headline mt-4 text-3xl font-black text-white">Validate demand first</h2>
-            <div className="mt-5 text-6xl font-black text-white">
-              $0<span className="ml-2 text-lg font-semibold text-white/40">forever</span>
-            </div>
+        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={
+                plan.highlight
+                  ? "panel-strong relative flex flex-col rounded-[2rem] border border-[#6C5CE7]/50 bg-[#6C5CE7]/5 p-8 shadow-[0_0_50px_rgba(108,92,231,0.15)]"
+                  : "panel flex flex-col rounded-[2rem] p-8"
+              }
+            >
+              {plan.highlight && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#6C5CE7] px-4 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+                  Most Popular
+                </div>
+              )}
 
-            <div className="mt-8 space-y-4 text-white/66">
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                1000 credits included
+              <div className="mb-8">
+                <h2 className="headline text-2xl font-black text-white">{plan.name}</h2>
+                <div className="mt-5 text-6xl font-black text-white">
+                  {plan.price}
+                  <span className="ml-2 text-lg font-semibold text-white/40">/month</span>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-white/56">{plan.subtitle}</p>
               </div>
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                Great for testing the workflow and first user feedback
-              </div>
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                Basic access to content generation
-              </div>
-            </div>
 
-            <div className="mt-8 rounded-[1.2rem] border border-white/10 bg-white/6 px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.18em] text-white/55">
-              Available after signup
-            </div>
-          </div>
-
-          <div className="panel-strong relative rounded-[2.2rem] p-8 md:p-10">
-            <div className="absolute right-8 top-8 rounded-full border border-indigo-300/20 bg-indigo-400/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-indigo-100">
-              Most popular
-            </div>
-            <div className="text-xs uppercase tracking-[0.24em] text-cyan-300/76">Pro</div>
-            <h2 className="headline mt-4 text-3xl font-black text-white">Ship with room to grow</h2>
-            <div className="mt-5 text-6xl font-black text-white">
-              $9.99<span className="ml-2 text-lg font-semibold text-white/40">/month</span>
-            </div>
-
-            <div className="mt-8 space-y-4 text-white/70">
-              <div className="rounded-[1.4rem] border border-indigo-300/16 bg-indigo-400/8 px-4 py-4">
-                10000 credits per month
+              <div className="flex-1 space-y-4 text-white/70">
+                {plan.items.map((item) => (
+                  <div key={item} className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
+                    {item}
+                  </div>
+                ))}
               </div>
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                Better fit for repeated generation and live user testing
-              </div>
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-4 py-4">
-                Continue generating without interruption
+
+              <div className="mt-8">
+                {plan.highlight ? (
+                  <PricingAction />
+                ) : (
+                  <div className="rounded-[1.2rem] border border-white/10 bg-white/6 px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.18em] text-white/55">
+                    Available after signup
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="mt-8">
-              <PricingAction />
-            </div>
-          </div>
+          ))}
         </section>
       </div>
     </div>
