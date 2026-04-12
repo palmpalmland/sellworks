@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromBearerRequest } from "@/lib/server-auth";
 import { PROJECT_ASSETS_BUCKET } from "@/lib/project-storage";
 import { fetchSeedanceTask } from "@/lib/seedance";
+import { assertBrandAccess } from "@/lib/brand";
 
 type OutputImageRecord = {
   storagePath?: string;
@@ -58,7 +59,6 @@ export async function GET(
       .from("projects")
       .select("*")
       .eq("id", projectId)
-      .eq("user_id", user.id)
       .single();
 
     if (projectError || !project) {
@@ -66,6 +66,14 @@ export async function GET(
         { error: projectError?.message || "Project not found" },
         { status: 404 }
       );
+    }
+
+    const canAccess = project.brand_id
+      ? await assertBrandAccess({ brandId: project.brand_id, userId: user.id })
+      : project.user_id === user.id;
+
+    if (!canAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { data: outputs, error: outputsError } = await supabaseAdmin

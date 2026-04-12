@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { ProjectRecord } from '@/lib/project-types'
+import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
 
 type UsageData = {
   plan?: string
@@ -14,45 +14,114 @@ type UsageData = {
   credits_remaining: number
 }
 
+function MetricSkeleton() {
+  return <div className="mt-3 h-10 w-20 animate-pulse rounded bg-white/18" />
+}
+
+function ProjectRowSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <div className="h-5 w-44 animate-pulse rounded bg-white/10" />
+        <div className="mt-2 h-4 w-32 animate-pulse rounded bg-white/8" />
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="h-7 w-20 animate-pulse rounded-full bg-white/8" />
+        <div className="h-4 w-10 animate-pulse rounded bg-white/8" />
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [brand, setBrand] = useState<BrandRecord | null>(null)
+  const [brandReady, setBrandReady] = useState(true)
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [projects, setProjects] = useState<ProjectRecord[]>([])
   const [quickUrl, setQuickUrl] = useState('')
   const [loading, setLoading] = useState(true)
+
   const displayName = user?.user_metadata?.display_name?.toString().trim() || null
   const initialsSource = displayName || user?.email || 'Sellworks'
   const initials = initialsSource.slice(0, 2).toUpperCase()
 
   useEffect(() => {
+    const cachedBrand = window.sessionStorage.getItem('sellworks-brand')
+    if (cachedBrand) {
+      try {
+        setBrand(JSON.parse(cachedBrand) as BrandRecord)
+      } catch {}
+    }
+
+    const cachedDashboard = window.sessionStorage.getItem('sellworks-dashboard-cache')
+    if (cachedDashboard) {
+      try {
+        const parsed = JSON.parse(cachedDashboard) as {
+          usage: UsageData | null
+          projects: ProjectRecord[]
+        }
+        setUsage(parsed.usage)
+        setProjects(parsed.projects || [])
+        setLoading(false)
+      } catch {}
+    }
+
     const loadDashboard = async () => {
       try {
-        setLoading(true)
-
-        const { data } = await supabase.auth.getUser()
-        const currentUser = data.user
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        const currentUser = session?.user ?? null
         setUser(currentUser)
 
         if (!currentUser) return
 
-        const [usageRes, projectsRes] = await Promise.all([
+        const brandPromise = session?.access_token
+          ? fetch('/api/brand', {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          : Promise.resolve(null)
+
+        const [brandJson, usageJson, projectsJson] = await Promise.all([
+          brandPromise,
           fetch(`/api/usage?userId=${currentUser.id}`).then((res) => res.json()),
-          supabase
-            .from('projects')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false })
-            .limit(6),
+          fetch('/api/projects?limit=6', {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }).then((res) => res.json()),
         ])
 
-        if (usageRes?.data) {
-          setUsage(usageRes.data)
+        const currentBrand = brandJson?.data?.brand as BrandRecord | undefined
+        setBrand(currentBrand || null)
+        setBrandReady(Boolean(currentBrand))
+
+        if (currentBrand) {
+          window.sessionStorage.setItem('sellworks-brand', JSON.stringify(currentBrand))
         }
 
-        if (!projectsRes.error) {
-          setProjects((projectsRes.data as ProjectRecord[]) || [])
+        if (usageJson?.data) {
+          setUsage(usageJson.data)
         }
+
+        const nextProjects = (projectsJson?.data as ProjectRecord[]) || []
+        const nextUsage = (usageJson?.data as UsageData | undefined) || null
+
+        setProjects(nextProjects)
+        setUsage(nextUsage)
+        window.sessionStorage.setItem(
+          'sellworks-dashboard-cache',
+          JSON.stringify({
+            usage: nextUsage,
+            projects: nextProjects,
+          })
+        )
       } finally {
         setLoading(false)
       }
@@ -76,7 +145,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-7 px-6 py-7 md:px-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/70">
-              Workspace Home
+              {brand?.name || 'Workspace Home'}
             </div>
             <h1 className="mt-4 text-3xl font-light uppercase tracking-tight md:text-4xl">
               Welcome back
@@ -92,23 +161,30 @@ export default function DashboardPage() {
           <div className="grid gap-6 sm:grid-cols-3">
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Recent Projects</div>
-              <div className="mt-3 text-4xl font-light">{projects.length}</div>
+              {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{projects.length}</div>}
             </div>
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Active Plan</div>
-              <div className="mt-3 text-4xl font-light">{usage?.plan || (loading ? '...' : 'Free')}</div>
+              {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{usage?.plan || 'Free'}</div>}
             </div>
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Credits Left</div>
-              <div className="mt-3 text-4xl font-light">
-                {typeof usage?.credits_remaining === 'number' ? usage.credits_remaining : loading ? '...' : 0}
-              </div>
+              {loading ? (
+                <MetricSkeleton />
+              ) : (
+                <div className="mt-3 text-4xl font-light">{usage?.credits_remaining ?? 0}</div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       <section className="panel rounded-[1.8rem] p-6 md:p-7">
+        {!brandReady && (
+          <div className="mb-5 rounded-[1.2rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+            Brand workspace is not ready yet in this environment, so dashboard is temporarily using your personal projects view.
+          </div>
+        )}
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-xl font-bold text-white">Quick create</div>
@@ -161,26 +237,28 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-6 space-y-3">
-          {projects.slice(0, 5).map((project) => (
-            <Link
-              key={project.id}
-              href={`/projects/${project.id}`}
-              className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-4 transition hover:border-white/14 hover:bg-white/[0.04] md:flex-row md:items-center md:justify-between"
-            >
-              <div className="min-w-0">
-                <div className="text-base font-semibold text-white">{project.product_name}</div>
-                <div className="mt-1 text-sm text-white/50">
-                  {project.platform} · {new Date(project.created_at).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">
-                  {project.status}
-                </div>
-                <span className="text-sm font-semibold text-white/70">Open</span>
-              </div>
-            </Link>
-          ))}
+          {loading
+            ? Array.from({ length: 4 }).map((_, index) => <ProjectRowSkeleton key={index} />)
+            : projects.slice(0, 5).map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-4 transition hover:border-white/14 hover:bg-white/[0.04] md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="text-base font-semibold text-white">{project.product_name}</div>
+                    <div className="mt-1 text-sm text-white/50">
+                      {project.platform} · {new Date(project.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">
+                      {project.status}
+                    </div>
+                    <span className="text-sm font-semibold text-white/70">Open</span>
+                  </div>
+                </Link>
+              ))}
 
           {!loading && projects.length === 0 && (
             <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-white/50">

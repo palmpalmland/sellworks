@@ -14,6 +14,7 @@ import {
 } from "@/lib/project-storage";
 import { createSeedanceTask } from "@/lib/seedance";
 import { getUsage, incrementUsage, logUsage } from "@/lib/usage";
+import { ensurePrimaryBrandForUser } from "@/lib/brand";
 
 type PersistedGeneratedImage = {
   title: string;
@@ -127,6 +128,40 @@ async function persistGeneratedImages(params: {
   }));
 }
 
+export async function GET(req: Request) {
+  try {
+    const { user, error: authError } = await getUserFromBearerRequest(req);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const limitParam = Number(searchParams.get("limit") || "0");
+    const query = supabaseAdmin
+      .from("projects")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    const limitedQuery = limitParam > 0 ? query.limit(limitParam) : query;
+    const { data, error } = await limitedQuery;
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      data: data || [],
+    });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to load projects" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { user, error: authError } = await getUserFromBearerRequest(req);
@@ -181,6 +216,7 @@ export async function POST(req: Request) {
     }
 
     const usage = await getUsage(user.id);
+    const { brand } = await ensurePrimaryBrandForUser(user);
 
     if (usage.credits_used >= usage.credits_total) {
       return NextResponse.json(
@@ -197,6 +233,7 @@ export async function POST(req: Request) {
       .from("projects")
       .insert({
         user_id: user.id,
+        brand_id: brand.id,
         product_name: productName,
         selling_points: sellingPoints,
         platform,
