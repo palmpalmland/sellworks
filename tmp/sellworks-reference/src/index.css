@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-background: #060608;
+  --color-card: #0D0D12;
+  --color-border: #1A1A24;
+  --color-subtext: #8A8A9E;
+  
+  --background-image-gradient-primary: linear-gradient(135deg, #6C5CE7 0%, #00D4FF 100%);
+  --background-image-gradient-surface: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+
+  --animate-gradient-x: gradient-x 3s ease infinite;
+
+  @keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    @apply antialiased;
+  }
+  body {
+    @apply bg-background text-white font-sans;
+  }
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-[#6C5CE7] via-[#00D4FF] to-[#6C5CE7] bg-[length:200%_auto] animate-gradient-x;
+}
+
+.gradient-button {
+  @apply relative overflow-hidden bg-gradient-to-r from-[#6C5CE7] to-[#00D4FF] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] hover:shadow-[0_0_30px_rgba(108,92,231,0.4)];
+}
+
+.glass-card {
+  @apply bg-card/50 backdrop-blur-xl border border-white/5 rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+}
+
+.section-container {
+  @apply mx-auto max-w-7xl px-6 py-32 sm:px-8 lg:px-12;
+}

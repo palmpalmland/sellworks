@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import type { ProjectRecord } from '@/lib/project-types'
 
 type UsageData = {
   plan?: string
@@ -13,23 +15,44 @@ type UsageData = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [usage, setUsage] = useState<UsageData | null>(null)
+  const [projects, setProjects] = useState<ProjectRecord[]>([])
+  const [quickUrl, setQuickUrl] = useState('')
   const [loading, setLoading] = useState(true)
+  const displayName = user?.user_metadata?.display_name?.toString().trim() || null
+  const initialsSource = displayName || user?.email || 'Sellworks'
+  const initials = initialsSource.slice(0, 2).toUpperCase()
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
+        setLoading(true)
+
         const { data } = await supabase.auth.getUser()
         const currentUser = data.user
         setUser(currentUser)
 
         if (!currentUser) return
 
-        const res = await fetch(`/api/usage?userId=${currentUser.id}`)
-        const json = await res.json()
+        const [usageRes, projectsRes] = await Promise.all([
+          fetch(`/api/usage?userId=${currentUser.id}`).then((res) => res.json()),
+          supabase
+            .from('projects')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(6),
+        ])
 
-        if (json.data) setUsage(json.data)
+        if (usageRes?.data) {
+          setUsage(usageRes.data)
+        }
+
+        if (!projectsRes.error) {
+          setProjects((projectsRes.data as ProjectRecord[]) || [])
+        }
       } finally {
         setLoading(false)
       }
@@ -38,84 +61,132 @@ export default function DashboardPage() {
     loadDashboard()
   }, [])
 
-  if (loading) {
-    return <main className="py-10 text-white/60">Loading dashboard...</main>
+  const handleQuickCreate = () => {
+    const params = new URLSearchParams()
+    if (quickUrl.trim()) {
+      params.set('productUrl', quickUrl.trim())
+    }
+
+    router.push(params.toString() ? `/generate?${params.toString()}` : '/generate')
   }
 
   return (
-    <main className="space-y-8 py-2">
-      <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="eyebrow">Workspace overview</div>
-            <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-              Your AI content control panel
+    <main className="space-y-5 py-1">
+      <section className="overflow-hidden rounded-[1.8rem] bg-[#0a88b8] text-white">
+        <div className="flex flex-col gap-7 px-6 py-7 md:px-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/70">
+              Workspace Home
+            </div>
+            <h1 className="mt-4 text-3xl font-light uppercase tracking-tight md:text-4xl">
+              Welcome back
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/62">
-              This is the operator side of the product. Public visitors do not see this shell.
-            </p>
+            <div className="mt-5 flex flex-wrap items-center gap-3 text-white/88">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-sm font-bold text-[#0a88b8]">
+                {initials}
+              </div>
+              <div className="text-base font-medium">{displayName || user?.email || 'Sellworks operator'}</div>
+            </div>
           </div>
 
-          {user && (
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/6 px-5 py-4 text-sm text-white/60">
-              Logged in as
-              <div className="mt-1 text-base font-semibold text-white">{user.email}</div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Recent Projects</div>
+              <div className="mt-3 text-4xl font-light">{projects.length}</div>
             </div>
-          )}
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Active Plan</div>
+              <div className="mt-3 text-4xl font-light">{usage?.plan || (loading ? '...' : 'Free')}</div>
+            </div>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Credits Left</div>
+              <div className="mt-3 text-4xl font-light">
+                {typeof usage?.credits_remaining === 'number' ? usage.credits_remaining : loading ? '...' : 0}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {usage ? (
-        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <div className="panel rounded-[1.8rem] p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/38">Current Plan</div>
-            <div className="headline mt-3 text-3xl font-black text-white">
-              {usage.plan || 'free'}
-            </div>
+      <section className="panel rounded-[1.8rem] p-6 md:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xl font-bold text-white">Quick create</div>
+            <p className="mt-2 text-sm leading-7 text-white/58">
+              Paste a product URL to jump straight into a new project, or start from a blank brief if you want more control.
+            </p>
           </div>
-          <div className="panel rounded-[1.8rem] p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/38">Total Credits</div>
-            <div className="headline mt-3 text-3xl font-black text-white">
-              {usage.credits_total}
-            </div>
-          </div>
-          <div className="panel rounded-[1.8rem] p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/38">Used Credits</div>
-            <div className="headline mt-3 text-3xl font-black text-white">
-              {usage.credits_used}
-            </div>
-          </div>
-          <div className="panel rounded-[1.8rem] p-6">
-            <div className="text-xs uppercase tracking-[0.2em] text-white/38">Remaining</div>
-            <div className="headline mt-3 text-3xl font-black text-white">
-              {usage.credits_remaining}
-            </div>
-          </div>
-        </section>
-      ) : null}
+          <Link href="/projects" className="hidden rounded-[1.1rem] border border-white/10 px-4 py-3 text-sm font-semibold text-white/72 transition hover:bg-white/[0.04] hover:text-white md:inline-flex">
+            View all projects
+          </Link>
+        </div>
 
-      <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="panel rounded-[2rem] p-8">
-          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Next actions</div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Link href="/generate" className="cta-primary text-sm">
-              Generate New Copy
-            </Link>
-                  <Link href="/history" className="cta-secondary text-sm">
-                    View History
-                  </Link>
-                  <Link href="/billing" className="cta-secondary text-sm">
-                    Manage Plan
-                  </Link>
+        <div className="mt-6 flex flex-col gap-4 lg:flex-row">
+          <input
+            type="url"
+            value={quickUrl}
+            onChange={(event) => setQuickUrl(event.target.value)}
+            placeholder="Paste Amazon, Shopify, Etsy, or TikTok product URL"
+            className="field flex-1"
+          />
+          <button onClick={handleQuickCreate} className="cta-primary whitespace-nowrap px-6 text-sm">
+            Quick Create
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/generate" className="cta-secondary text-sm">
+            Create Blank Project
+          </Link>
+          <Link href="/projects" className="cta-secondary text-sm">
+            Search Projects
+          </Link>
+          <Link href="/billing" className="cta-secondary text-sm">
+            Account
+          </Link>
+        </div>
+      </section>
+
+      <section className="panel rounded-[1.8rem] p-6 md:p-7">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xl font-bold text-white">Recent projects</div>
+            <p className="mt-2 text-sm leading-7 text-white/58">
+              Pick up where you left off, or jump into an older product to generate more assets.
+            </p>
+          </div>
+          <Link href="/projects" className="rounded-[1.1rem] border border-white/10 px-4 py-3 text-sm font-semibold text-white/72 transition hover:bg-white/[0.04] hover:text-white">
+            See all
+          </Link>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {projects.slice(0, 5).map((project) => (
+            <Link
+              key={project.id}
+              href={`/projects/${project.id}`}
+              className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-4 transition hover:border-white/14 hover:bg-white/[0.04] md:flex-row md:items-center md:justify-between"
+            >
+              <div className="min-w-0">
+                <div className="text-base font-semibold text-white">{project.product_name}</div>
+                <div className="mt-1 text-sm text-white/50">
+                  {project.platform} · {new Date(project.created_at).toLocaleDateString()}
                 </div>
               </div>
+              <div className="flex items-center gap-3">
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/60">
+                  {project.status}
+                </div>
+                <span className="text-sm font-semibold text-white/70">Open</span>
+              </div>
+            </Link>
+          ))}
 
-        <div className="panel rounded-[2rem] p-8">
-          <div className="text-xs uppercase tracking-[0.2em] text-white/36">Workspace rule</div>
-          <p className="mt-4 text-base leading-8 text-white/62">
-            Free users and paid users both land here after signup. The difference is plan
-            and credits, not whether they can see the operator shell.
-          </p>
+          {!loading && projects.length === 0 && (
+            <div className="rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-white/50">
+              No projects yet. Start with Quick Create above.
+            </div>
+          )}
         </div>
       </section>
     </main>

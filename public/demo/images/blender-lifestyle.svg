@@ -1,0 +1,17 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" rx="64" fill="#0A0B10"/>
+  <rect x="80" y="80" width="1040" height="1040" rx="56" fill="#151722" stroke="#202536"/>
+  <circle cx="330" cy="360" r="180" fill="#1D2744"/>
+  <circle cx="880" cy="260" r="130" fill="#172D3A"/>
+  <rect x="520" y="370" width="180" height="330" rx="90" fill="#F8FBFF"/>
+  <rect x="545" y="330" width="130" height="90" rx="28" fill="#E4EEFF"/>
+  <path d="M320 820C440 710 560 660 690 660C820 660 930 720 1010 860" stroke="url(#a)" stroke-width="26" stroke-linecap="round"/>
+  <text x="120" y="1010" fill="#FFFFFF" fill-opacity=".95" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="800">Lifestyle Demo Image</text>
+  <text x="120" y="1080" fill="#8A8A9E" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="600">Swap in your real lifestyle render whenever it is ready.</text>
+  <defs>
+    <linearGradient id="a" x1="320" y1="760" x2="1010" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C5CE7"/>
+      <stop offset="1" stop-color="#00D4FF"/>
+    </linearGradient>
+  </defs>
+</svg>

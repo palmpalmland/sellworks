@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import SellworksLogo from '@/components/SellworksLogo'
 
 type AppShellProps = {
   children: React.ReactNode
@@ -12,9 +13,11 @@ type AppShellProps = {
 
 export default function AppShell({ children }: AppShellProps) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
+  const displayName = user?.user_metadata?.display_name?.toString().trim() || null
+  const initialsSource = displayName || user?.email || 'Sellworks'
+  const initials = initialsSource.slice(0, 2).toUpperCase()
 
   useEffect(() => {
     const init = async () => {
@@ -27,10 +30,19 @@ export default function AppShell({ children }: AppShellProps) {
       }
 
       setUser(currentUser)
-      setLoading(false)
     }
 
     init()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [router])
 
   const handleLogout = async () => {
@@ -40,35 +52,32 @@ export default function AppShell({ children }: AppShellProps) {
 
   const links = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/generate', label: 'Generate' },
-    { href: '/history', label: 'History' },
-    { href: '/billing', label: 'Pricing' },
+    { href: '/projects', label: 'Projects' },
+    { href: '/assets', label: 'Assets' },
+    { href: '/billing', label: 'Account' },
   ]
 
-  const linkClassName = (href: string) =>
-    pathname === href
-      ? 'rounded-2xl border border-white/12 bg-white/10 px-4 py-3 text-white'
-      : 'rounded-2xl px-4 py-3 text-white/70 transition hover:bg-white/6 hover:text-white'
+  const isActiveLink = (href: string) =>
+    href === '/projects' ? pathname.startsWith('/projects') : pathname === href
 
-  if (loading) {
-    return <main className="page-shell py-16 text-white/60">Loading workspace...</main>
-  }
+  const linkClassName = (href: string) =>
+    isActiveLink(href)
+      ? 'rounded-2xl border border-white/10 bg-white/[0.07] px-3.5 py-2.5 text-[13px] text-white'
+      : 'rounded-2xl px-3.5 py-2.5 text-[13px] text-white/52 transition hover:bg-white/[0.03] hover:text-white'
 
   return (
     <div className="min-h-screen">
-      <div className="page-shell flex min-h-screen gap-6 py-6">
-        <aside className="panel hidden w-72 shrink-0 rounded-[2rem] p-5 lg:flex lg:flex-col">
-          <Link href="/dashboard" className="mb-8 flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#32c8ff_0%,#6d7cff_48%,#9c6bff_100%)] text-lg font-black text-white shadow-[0_12px_30px_rgba(109,124,255,0.35)]">
-              AC
-            </div>
+      <div className="flex min-h-screen">
+        <aside className="hidden h-screen w-[248px] shrink-0 border-r border-white/8 bg-[#08090d] px-4 py-4 lg:sticky lg:top-0 lg:flex lg:flex-col">
+          <Link href="/dashboard" className="mb-7 flex items-center gap-3">
+            <SellworksLogo className="h-10 w-10 shrink-0" />
             <div>
-              <div className="headline text-lg font-black text-white">Workspace</div>
-              <div className="text-xs uppercase tracking-[0.22em] text-white/38">Operator mode</div>
+              <div className="text-base font-black tracking-tighter text-white">Sellworks</div>
+              <div className="text-xs uppercase tracking-[0.22em] text-white/32">Workspace</div>
             </div>
           </Link>
 
-          <nav className="flex flex-col gap-2 text-sm font-semibold">
+          <nav className="flex flex-col gap-1.5 text-sm font-semibold">
             {links.map((item) => (
               <Link key={item.href} href={item.href} className={linkClassName(item.href)}>
                 {item.label}
@@ -76,9 +85,19 @@ export default function AppShell({ children }: AppShellProps) {
             ))}
           </nav>
 
-          <div className="mt-auto rounded-[1.6rem] border border-white/8 bg-white/5 p-4">
+          <div className="mt-auto rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
             <div className="text-xs uppercase tracking-[0.2em] text-white/36">Signed in as</div>
-            <div className="mt-2 break-all text-sm font-semibold text-white">{user?.email}</div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-xs font-bold tracking-[0.12em] text-white">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-white">
+                  {displayName || 'Sellworks user'}
+                </div>
+                <div className="truncate text-xs text-white/42">{user?.email}</div>
+              </div>
+            </div>
             <Link href="/" className="cta-secondary mt-4 w-full text-sm">
               View Site
             </Link>
@@ -88,18 +107,21 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <div className="panel mb-5 flex items-center justify-between rounded-[1.6rem] px-4 py-3 lg:hidden">
-            <div>
-              <div className="headline text-xl font-black text-white">Workspace</div>
-              <div className="text-xs uppercase tracking-[0.18em] text-white/38">Operator mode</div>
+        <div className="min-w-0 flex-1 overflow-x-hidden px-3 py-3 md:px-4 md:py-4 lg:px-5">
+          <div className="panel mb-4 flex items-center justify-between rounded-[1.4rem] px-4 py-3 lg:hidden">
+            <div className="flex items-center gap-3">
+              <SellworksLogo className="h-10 w-10 shrink-0" />
+              <div>
+                <div className="text-xl font-black tracking-tighter text-white">Sellworks</div>
+                <div className="text-xs uppercase tracking-[0.18em] text-white/32">Workspace</div>
+              </div>
             </div>
             <button onClick={handleLogout} className="cta-secondary px-4 py-2 text-sm">
               Logout
             </button>
           </div>
 
-          <div className="panel mb-5 flex gap-2 overflow-x-auto rounded-[1.6rem] p-2 lg:hidden">
+          <div className="panel mb-4 flex gap-2 overflow-x-auto rounded-[1.4rem] p-2 lg:hidden">
             {links.map((item) => (
               <Link key={item.href} href={item.href} className={`${linkClassName(item.href)} whitespace-nowrap`}>
                 {item.label}

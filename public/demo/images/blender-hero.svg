@@ -1,0 +1,16 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" rx="64" fill="#0D0D12"/>
+  <rect x="120" y="120" width="960" height="960" rx="48" fill="#14141C" stroke="#232334"/>
+  <circle cx="600" cy="390" r="180" fill="url(#a)"/>
+  <rect x="490" y="330" width="220" height="430" rx="110" fill="#F4F7FF"/>
+  <rect x="520" y="290" width="160" height="110" rx="32" fill="#DCE9FF"/>
+  <rect x="545" y="420" width="110" height="180" rx="55" fill="#6C5CE7" fill-opacity=".18"/>
+  <text x="120" y="1010" fill="#FFFFFF" fill-opacity=".95" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="800">Portable Blender Hero</text>
+  <text x="120" y="1080" fill="#8A8A9E" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="600">Replace this with your actual demo image later.</text>
+  <defs>
+    <linearGradient id="a" x1="420" y1="230" x2="780" y2="610" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C5CE7"/>
+      <stop offset="1" stop-color="#00D4FF"/>
+    </linearGradient>
+  </defs>
+</svg>

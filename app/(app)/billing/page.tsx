@@ -1,40 +1,209 @@
-import UpgradeButton from "@/components/UpgradeButton";
+'use client'
+
+import { useEffect, useState } from 'react'
+import type { User } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import UpgradeButton from '@/components/UpgradeButton'
+
+type UsageData = {
+  plan?: string
+  credits_total: number
+  credits_used: number
+  credits_remaining: number
+}
 
 export default function BillingPage() {
+  const [user, setUser] = useState<User | null>(null)
+  const [usage, setUsage] = useState<UsageData | null>(null)
+  const [displayName, setDisplayName] = useState('')
+  const [profileMessage, setProfileMessage] = useState('')
+  const [securityMessage, setSecurityMessage] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.auth.getUser()
+      const currentUser = data.user
+      setUser(currentUser)
+      setDisplayName(currentUser?.user_metadata?.display_name?.toString() || '')
+
+      if (!currentUser) return
+
+      const res = await fetch(`/api/usage?userId=${currentUser.id}`)
+      const json = await res.json()
+
+      if (json?.data) {
+        setUsage(json.data)
+      }
+    }
+
+    load()
+  }, [])
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true)
+    setProfileMessage('')
+
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        display_name: displayName.trim(),
+      },
+    })
+
+    setSavingProfile(false)
+
+    if (error) {
+      setProfileMessage(error.message)
+      return
+    }
+
+    setUser(data.user)
+    setProfileMessage('Profile updated.')
+  }
+
+  const handleChangePassword = async () => {
+    setSecurityMessage('')
+
+    if (newPassword.length < 6) {
+      setSecurityMessage('Password must be at least 6 characters.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setSecurityMessage('Passwords do not match.')
+      return
+    }
+
+    setSavingPassword(true)
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    setSavingPassword(false)
+
+    if (error) {
+      setSecurityMessage(error.message)
+      return
+    }
+
+    setNewPassword('')
+    setConfirmPassword('')
+    setSecurityMessage('Password updated.')
+  }
+
   return (
-    <main className="space-y-6 py-2">
-      <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
-        <div className="eyebrow">Workspace pricing</div>
-        <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-          Manage plan without leaving the workspace
+    <main className="space-y-5 py-1">
+      <section className="panel-strong rounded-[1.8rem] p-6 md:p-8">
+        <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Account</div>
+        <h1 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-5xl">
+          Subscription, billing, and workspace settings
         </h1>
-        <p className="mt-5 max-w-2xl text-lg leading-8 text-white/62">
-          This page is the backend-side pricing view. You stay inside the operator shell while upgrading.
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-white/58">
+          Keep credits, plan management, billing decisions, and operator settings here instead of turning dashboard into an accounting page.
         </p>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="panel rounded-[2rem] p-8">
-          <div className="text-xs uppercase tracking-[0.22em] text-white/36">Free</div>
-          <div className="headline mt-4 text-4xl font-black text-white">$0</div>
-          <div className="mt-6 space-y-4 text-white/62">
-            <p>Entry access to the workspace.</p>
-            <p>Enough to test the product and try a few generations.</p>
+      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="panel rounded-[1.8rem] p-6 md:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-2xl font-bold text-white">Current subscription</div>
+              <div className="mt-2 text-sm text-white/52">
+                {usage?.plan || 'Free'} plan
+              </div>
+            </div>
+            <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/58">
+              Active
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Credits total</div>
+              <div className="mt-3 text-3xl font-bold text-white">{usage?.credits_total ?? 0}</div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Credits used</div>
+              <div className="mt-3 text-3xl font-bold text-white">{usage?.credits_used ?? 0}</div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Credits left</div>
+              <div className="mt-3 text-3xl font-bold text-white">{usage?.credits_remaining ?? 0}</div>
+            </div>
+          </div>
+
+          <div className="mt-6 max-w-sm">
+            <UpgradeButton />
           </div>
         </div>
 
-        <div className="panel-strong rounded-[2rem] p-8">
-          <div className="text-xs uppercase tracking-[0.22em] text-cyan-300/76">Pro</div>
-          <div className="headline mt-4 text-4xl font-black text-white">$9.99/mo</div>
-          <div className="mt-6 space-y-4 text-white/68">
-            <p>More monthly credits.</p>
-            <p>Better fit for repeated usage and real customer testing.</p>
-          </div>
-          <div className="mt-8">
-            <UpgradeButton />
+        <div className="panel rounded-[1.8rem] p-6 md:p-7">
+          <div className="text-2xl font-bold text-white">Workspace details</div>
+          <div className="mt-5 space-y-4">
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Profile</div>
+              <div className="mt-4 space-y-3">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Display name"
+                  className="field"
+                />
+                <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-white/36">Operator email</div>
+                  <div className="mt-2 text-sm font-semibold text-white">{user?.email || 'Not available'}</div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button onClick={handleSaveProfile} className="cta-primary text-sm" disabled={savingProfile}>
+                    {savingProfile ? 'Saving...' : 'Save profile'}
+                  </button>
+                  <div className="text-sm text-white/54">
+                    {profileMessage || 'Use this name across the workspace instead of the raw email.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Security</div>
+              <div className="mt-4 space-y-3">
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="New password"
+                  className="field"
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Confirm new password"
+                  className="field"
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <button onClick={handleChangePassword} className="cta-secondary text-sm" disabled={savingPassword}>
+                    {savingPassword ? 'Updating...' : 'Change password'}
+                  </button>
+                  <div className="text-sm text-white/54">
+                    {securityMessage || 'Update your workspace password here.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Admin tools</div>
+              <div className="mt-2 text-sm leading-7 text-white/58">
+                Good future fits here: API keys, export defaults, team seats, billing contacts, invoice history, and usage alerts.
+              </div>
+            </div>
           </div>
         </div>
       </section>
     </main>
-  );
+  )
 }

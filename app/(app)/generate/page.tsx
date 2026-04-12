@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
@@ -77,6 +77,13 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  useEffect(() => {
+    const prefilledUrl = new URLSearchParams(window.location.search).get('productUrl')
+    if (prefilledUrl) {
+      setProductUrl(prefilledUrl)
+    }
+  }, [])
 
   const handleImageRequirementChange = (index: number, value: string) => {
     setImageRequirements((current) => {
@@ -163,11 +170,10 @@ export default function GeneratePage() {
       <section className="panel-strong rounded-[2.2rem] p-8 md:p-10">
         <div className="eyebrow">Create Project</div>
         <h1 className="headline mt-6 text-4xl font-black text-white md:text-6xl">
-          Choose exactly what this project should generate
+          Build a project the Sellworks way
         </h1>
         <p className="mt-6 max-w-3xl text-lg leading-8 text-white/62">
-          Copy, images, and video are separated now. Build the project in a cleaner order:
-          product info first, then upload references, then decide which outputs to run.
+          Start with product context, then upload references, then choose which outputs should run for this project.
         </p>
 
         <div className="mt-8 grid gap-3 rounded-[1.8rem] border border-white/10 bg-white/5 p-4 md:grid-cols-4">
@@ -369,7 +375,7 @@ export default function GeneratePage() {
             disabled={loading}
             className="cta-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? 'Uploading and creating project...' : 'Create Project'}
+            {loading ? 'Uploading and creating project...' : 'Create Sellworks Project'}
           </button>
         </div>
 

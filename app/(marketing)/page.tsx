@@ -1,4 +1,10 @@
+'use client'
+
 import Link from "next/link";
+import { useCallback, useRef, useState } from "react";
+import MarketingLoadingOverlay from "@/components/MarketingLoadingOverlay";
+import Reveal from "@/components/Reveal";
+import { marketingDemo } from "@/lib/demo-content";
 
 function LinkIcon() {
   return (
@@ -80,6 +86,15 @@ function LayersIcon() {
   );
 }
 
+function ArrowUpRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+      <path d="M7 17 17 7" />
+      <path d="M7 7h10v10" />
+    </svg>
+  );
+}
+
 const features = [
   {
     title: "Product Listing Copy",
@@ -154,80 +169,100 @@ const reasons = [
   },
 ];
 
-const showcase = [
-  { label: "Content Kit", title: "Portable Blender" },
-  { label: "TikTok Ad", title: "Ergonomic Chair" },
-  { label: "Amazon Listing", title: "Smart Watch" },
-  { label: "UGC Video", title: "Coffee Maker" },
+const comparisonRows = [
+  { label: "Full content kit", sellworks: true, others: false },
+  { label: "Built for ecommerce", sellworks: true, others: false },
+  { label: "Lower cost", sellworks: true, others: false },
+  { label: "Multiple variations", sellworks: true, others: false },
+  { label: "Single asset generation", sellworks: false, others: true },
 ];
 
-const comparisonRows = [
+const processSteps = [
   {
-    label: "One product link to a full content kit",
-    sellworks: true,
-    tools: false,
-    agencies: false,
+    number: "01",
+    title: "Paste your product link",
+    description: "Simply drop a link from Amazon, Shopify, or TikTok Shop into our AI engine.",
   },
   {
-    label: "Amazon-ready images and PDP copy together",
-    sellworks: true,
-    tools: false,
-    agencies: true,
+    number: "02",
+    title: "Sellworks generates your kit",
+    description: "Our AI analyzes the product and generates your entire content system in seconds.",
   },
   {
-    label: "TikTok hooks and ad creative generation",
-    sellworks: true,
-    tools: true,
-    agencies: true,
+    number: "03",
+    title: "Export and use across platforms",
+    description: "Download your high-res images, videos, and copy to launch your ads instantly.",
   },
-  {
-    label: "Fast enough for daily product testing",
-    sellworks: true,
-    tools: false,
-    agencies: false,
-  },
+];
+
+const showcase = [
+  { label: "Content Kit", title: "Portable Blender", image: "https://picsum.photos/seed/blender/400/400" },
+  { label: "TikTok Ad", title: "Ergonomic Chair", image: "https://picsum.photos/seed/chair/400/400" },
+  { label: "Amazon Listing", title: "Smart Watch", image: "https://picsum.photos/seed/watch/400/400" },
+  { label: "UGC Video", title: "Coffee Maker", image: "https://picsum.photos/seed/coffee/400/400" },
 ];
 
 export default function HomePage() {
+  const [demoInput, setDemoInput] = useState("");
+  const [demoState, setDemoState] = useState<"idle" | "loading" | "results">("idle");
+  const resultsRef = useRef<HTMLElement | null>(null);
+
+  const runDemo = useCallback((nextValue?: string) => {
+    if (nextValue) {
+      setDemoInput(nextValue);
+    }
+    setDemoState("loading");
+  }, []);
+
+  const handleDemoComplete = useCallback(() => {
+    setDemoState("results");
+    window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }, []);
+
   return (
     <div className="bg-background selection:bg-[#6C5CE7]/30">
       <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-6 py-28 md:py-32">
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute left-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-[#6C5CE7]/10 blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#00D4FF]/10 blur-[120px]" />
-          <div className="absolute left-1/2 top-[20%] h-[800px] w-full -translate-x-1/2 bg-[radial-gradient(circle_at_50%_0%,rgba(108,92,231,0.08)_0%,transparent_70%)]" />
+          <div className="absolute left-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-[#6C5CE7]/7 blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#00D4FF]/6 blur-[120px]" />
+          <div className="absolute left-1/2 top-[20%] h-[800px] w-full -translate-x-1/2 bg-[radial-gradient(circle_at_50%_0%,rgba(108,92,231,0.045)_0%,transparent_70%)]" />
         </div>
 
-        <div className="mx-auto max-w-5xl text-center">
+        <Reveal className="mx-auto max-w-5xl text-center" variant="fade-up">
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium backdrop-blur-md">
             <span className="flex h-2 w-2 rounded-full bg-[#6C5CE7]" />
             <span className="text-white/80">New: TikTok Shop Integration Live</span>
           </div>
 
           <h1 className="headline text-5xl font-black leading-[1.05] tracking-tight text-white sm:text-7xl lg:text-8xl">
-            Turn any product into
-            <br />
-            <span className="gradient-text">high-converting ads</span>
-            <br />
-            in 60 seconds
+            Turn any product into{" "}
+            <span className="gradient-text-spotlight">revenue.</span>
           </h1>
 
-          <p className="mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-2xl font-semibold leading-relaxed text-white sm:text-3xl">
+            No skills needed.{" "}
+            <span className="gradient-text">Sell like a pro.</span>
+          </p>
+
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl">
             Sellworks analyzes your product and generates everything you need to sell:
             Amazon-ready images, TikTok ads, and conversion-optimized copy.
           </p>
 
-          <div className="mx-auto mt-16 w-full max-w-3xl">
-            <div className="panel-strong group relative flex flex-col gap-4 rounded-[2rem] p-5 transition-all duration-500 hover:border-white/10 hover:shadow-[0_0_50px_rgba(108,92,231,0.15)] sm:flex-row sm:items-center">
+          <Reveal className="mx-auto mt-16 w-full max-w-3xl" variant="pop-in" delayMs={180}>
+            <div className="panel-strong group relative flex flex-col gap-4 rounded-[2rem] p-5 transition-all duration-500 hover:border-white/10 hover:shadow-[0_0_50px_rgba(108,92,231,0.12)] sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-white/34">
                   <LinkIcon />
                 </div>
                 <input
-                  placeholder="Paste Amazon, Shopify, or TikTok Shop product link"
-                  className="h-16 w-full rounded-2xl bg-background/40 pl-14 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]/30"
+                  placeholder={marketingDemo.inputPlaceholder}
+                  className="h-16 w-full rounded-2xl bg-black/40 pl-14 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]/30"
                   type="text"
-                  readOnly
+                  value={demoInput}
+                  onChange={(event) => setDemoInput(event.target.value)}
                 />
               </div>
 
@@ -236,17 +271,25 @@ export default function HomePage() {
                   <ImageIcon />
                   <span className="hidden sm:inline">Upload</span>
                 </div>
-                <Link href="/login" className="flex h-16 items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] px-10 font-bold text-white">
+                <button
+                  type="button"
+                  onClick={() => runDemo(demoInput || marketingDemo.exampleUrl)}
+                  className="flex h-16 items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] px-10 font-bold text-white"
+                >
                   <span>Generate</span>
-                </Link>
+                </button>
               </div>
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-3">
               <span className="text-sm text-white/42">No link?</span>
-              <span className="text-sm font-bold text-[#6C5CE7] underline underline-offset-4">
+              <button
+                type="button"
+                onClick={() => runDemo(marketingDemo.exampleUrl)}
+                className="text-sm font-bold text-[#6C5CE7] transition-colors hover:text-[#00D4FF] underline underline-offset-4"
+              >
                 Try an example product
-              </span>
+              </button>
             </div>
 
             <div className="mt-10 flex items-center justify-center gap-8 text-sm font-bold uppercase tracking-[0.2em] text-white/28">
@@ -255,8 +298,8 @@ export default function HomePage() {
               <span>TikTok Shop</span>
               <span>Meta</span>
             </div>
-          </div>
-        </div>
+          </Reveal>
+        </Reveal>
       </section>
 
       <section id="product" className="section-space scroll-mt-28">
@@ -277,117 +320,200 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map((item) => (
-              <div key={item.title} className="panel group rounded-[2rem] p-8 transition-all duration-500 hover:bg-white/[0.03] hover:border-white/10">
+            {features.map((item, index) => (
+              <Reveal
+                key={item.title}
+                className="panel group rounded-[2rem] p-8 transition-all duration-500 hover:bg-white/[0.03] hover:border-white/10"
+                variant="pop-in"
+                delayMs={100 + index * 90}
+              >
                 <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/5 bg-white/5 transition-all duration-500 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
                   <div className={item.accent}>{item.icon}</div>
                 </div>
-                <h3 className="headline text-xl font-black tracking-tight text-white">
-                  {item.title}
-                </h3>
+                <h3 className="headline text-xl font-black tracking-tight text-white">{item.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/55 transition-colors group-hover:text-white/72">
                   {item.description}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="demo" className="section-space scroll-mt-28">
+      <section id="demo" ref={resultsRef} className="section-space scroll-mt-28">
         <div className="page-shell">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-4 py-1 text-sm font-bold text-green-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-              Generation Complete
-            </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
-              Your Content Kit is Ready
-            </h2>
-            <p className="mt-4 text-lg text-white/56">
-              We&apos;ve generated a full suite of high-converting assets for your product.
-            </p>
-          </div>
+          {demoState === "results" ? (
+            <>
+              <div className="mb-16 text-center">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-4 py-1 text-sm font-bold text-green-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                  {marketingDemo.resultLabel}
+                </div>
+                <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+                  {marketingDemo.resultTitle}
+                </h2>
+                <p className="mt-4 text-lg text-white/56">
+                  {marketingDemo.resultSubtitle}
+                </p>
+              </div>
 
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="panel-strong overflow-hidden rounded-[2rem]">
-              <div className="mx-auto aspect-[9/16] max-h-[620px] max-w-[340px] rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(108,92,231,0.2),rgba(0,0,0,0.6))] p-6 shadow-2xl">
-                <div className="flex h-full flex-col justify-between">
-                  <div className="flex gap-2">
-                    <span className="rounded-full bg-[#6C5CE7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">Viral Hook</span>
-                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">UGC</span>
-                  </div>
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md">
-                    <div className="ml-1 h-0 w-0 border-y-[14px] border-l-[22px] border-y-transparent border-l-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold leading-relaxed text-white">
-                      This portable blender is a game changer for my morning routine.
-                    </h4>
-                    <div className="mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/74">
-                      <ZapIcon />
-                      <span>High-Res Export Locked</span>
+              <div className="grid gap-10">
+                <Reveal className="panel-strong overflow-hidden rounded-[2rem]" variant="pop-in">
+                  <div className="grid gap-10 p-8 lg:grid-cols-[0.92fr_1.08fr]">
+                    <div className="mx-auto w-full max-w-[340px] rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(108,92,231,0.2),rgba(0,0,0,0.6))] p-5 shadow-2xl">
+                      <div className="flex h-full min-h-[610px] flex-col justify-between overflow-hidden rounded-[28px] bg-black/10">
+                        <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border border-white/8">
+                          <img
+                            src={marketingDemo.video.poster}
+                            alt="Sellworks demo video poster"
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="absolute left-4 top-4 flex gap-2">
+                            <span className="rounded-full bg-[#6C5CE7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                              {marketingDemo.video.badge}
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                              {marketingDemo.video.format}
+                            </span>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md">
+                              <div className="ml-1 h-0 w-0 border-y-[14px] border-l-[22px] border-y-transparent border-l-white" />
+                            </div>
+                          </div>
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/75 to-transparent p-6">
+                            <h4 className="text-sm font-bold leading-relaxed text-white">
+                              {marketingDemo.video.headline}
+                            </h4>
+                            <div className="mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/74">
+                              <ZapIcon />
+                              <span>High-Res Export Locked</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-8 lg:grid-cols-2">
+                      <Reveal className="panel rounded-[2rem] p-8" variant="slide-left" delayMs={220}>
+                        <div className="mb-6 flex items-center justify-between">
+                          <h3 className="headline text-xl font-black text-white">Product Copy</h3>
+                          <div className="rounded-xl border border-white/8 bg-white/5 px-4 py-2 text-sm font-medium text-white">
+                            Copy All
+                          </div>
+                        </div>
+                        <div className="space-y-6">
+                          <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Product Title</label>
+                            <p className="text-lg font-semibold leading-tight text-white">
+                              {marketingDemo.copy.title}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Key Features</label>
+                            <ul className="space-y-2 text-sm text-white/82">
+                              {marketingDemo.copy.bullets.map((bullet) => (
+                                <li key={bullet}>{bullet}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Description</label>
+                            <p className="text-sm leading-7 text-white/72">
+                              {marketingDemo.copy.description}
+                            </p>
+                          </div>
+                        </div>
+                      </Reveal>
+
+                      <Reveal className="panel rounded-[2rem] p-8" variant="slide-right" delayMs={320}>
+                        <div className="mb-6 text-xs font-black uppercase tracking-[0.18em] text-white/36">
+                          Generated Assets
+                        </div>
+                        <div className="space-y-4">
+                          {marketingDemo.generatedAssets.map((asset) => (
+                            <div key={asset.title} className="rounded-[1.4rem] border border-white/8 bg-white/5 p-5">
+                              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
+                                {asset.label}
+                              </div>
+                              <div className="mt-2 text-lg font-bold text-white">{asset.title}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </Reveal>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 bg-white/[0.02] p-8">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-black">Download</div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">Remix</div>
-                </div>
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
-                  9:16 Vertical | 4K AI Render
-                </div>
-              </div>
-            </div>
+                  <div className="flex flex-col gap-4 border-t border-white/5 bg-white/[0.02] p-8 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-black">
+                        Download
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">
+                        Remix
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                      {marketingDemo.video.note}
+                    </div>
+                  </div>
+                </Reveal>
 
-            <div className="grid gap-8 lg:grid-cols-2">
-              <div className="panel rounded-[2rem] p-8">
-                <div className="mb-6 flex items-center justify-between">
-                  <h3 className="headline text-xl font-black text-white">Product Copy</h3>
-                  <div className="rounded-xl border border-white/8 bg-white/5 px-4 py-2 text-sm font-medium text-white">Copy All</div>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Product Title</label>
-                    <p className="text-lg font-semibold leading-tight text-white">
-                      Portable Blender Bottle for Smoothies On the Go
-                    </p>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Key Features</label>
-                    <ul className="space-y-2 text-sm text-white/82">
-                      <li>USB rechargeable and portable</li>
-                      <li>Powerful blending performance</li>
-                      <li>Perfect for travel, gym, and work</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="panel rounded-[2rem] p-8">
-                <div className="mb-6 text-xs font-black uppercase tracking-[0.18em] text-white/36">
-                  Generated Assets
-                </div>
-                <div className="space-y-4">
-                  <div className="rounded-[1.4rem] border border-white/8 bg-white/5 p-5">
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">Amazon Listing</div>
-                    <div className="mt-2 text-lg font-bold text-white">Smart Watch</div>
-                  </div>
-                  <div className="rounded-[1.4rem] border border-white/8 bg-white/5 p-5">
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">UGC Video</div>
-                    <div className="mt-2 text-lg font-bold text-white">Coffee Maker</div>
-                  </div>
-                  <div className="rounded-[1.4rem] border border-white/8 bg-white/5 p-5">
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">TikTok Ad</div>
-                    <div className="mt-2 text-lg font-bold text-white">Ergonomic Chair</div>
-                  </div>
+                <div className="grid gap-8 md:grid-cols-3">
+                  {marketingDemo.images.map((image, index) => (
+                    <Reveal
+                      key={image.title}
+                      className="panel overflow-hidden rounded-[2rem]"
+                      variant="pop-in"
+                      delayMs={180 + index * 100}
+                    >
+                      <div className="aspect-square overflow-hidden border-b border-white/6 bg-black/20">
+                        <img
+                          src={image.src}
+                          alt={image.title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
+                          {image.label}
+                        </div>
+                        <div className="mt-2 text-xl font-black tracking-tight text-white">
+                          {image.title}
+                        </div>
+                      </div>
+                    </Reveal>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-16 text-center">
+                <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+                  See Sellworks in action
+                </h2>
+                <p className="mt-6 text-lg text-white/56">
+                  Paste a link above to see the magic happen.
+                </p>
+              </div>
+              <Reveal
+                className="panel group relative flex aspect-video items-center justify-center overflow-hidden rounded-[2rem] border-dashed border-white/10 bg-white/[0.02] transition-all duration-500 hover:border-white/20"
+                variant="pop-in"
+                delayMs={120}
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(108,92,231,0.05)_0%,transparent_70%)]" />
+                <div className="relative flex flex-col items-center gap-4 text-white/38 transition-colors group-hover:text-white/60">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-current animate-[spin_10s_linear_infinite]">
+                    <ZapIcon />
+                  </div>
+                  <p className="text-sm font-bold uppercase tracking-[0.2em]">
+                    Demo results will appear here
+                  </p>
+                </div>
+              </Reveal>
+            </>
+          )}
         </div>
       </section>
 
@@ -405,8 +531,13 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-12 lg:grid-cols-3">
-            {outputs.map((item) => (
-              <div key={item.title} className="group text-center">
+            {outputs.map((item, index) => (
+              <Reveal
+                key={item.title}
+                className="group text-center"
+                variant="fade-up"
+                delayMs={100 + index * 100}
+              >
                 <div className={`mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[24px] border ${item.accent} transition duration-500 group-hover:scale-110`}>
                   {item.icon}
                 </div>
@@ -414,7 +545,7 @@ export default function HomePage() {
                 <p className="mx-auto mt-4 max-w-sm text-lg leading-relaxed text-white/56">
                   {item.description}
                 </p>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -434,8 +565,13 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2">
-            {reasons.map((item) => (
-              <div key={item.title} className="panel group flex flex-col gap-6 rounded-[2rem] p-10 transition hover:bg-white/[0.03] hover:border-white/10">
+            {reasons.map((item, index) => (
+              <Reveal
+                key={item.title}
+                className="panel group flex flex-col gap-6 rounded-[2rem] p-10 transition hover:bg-white/[0.03] hover:border-white/10"
+                variant="pop-in"
+                delayMs={100 + index * 90}
+              >
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-[#6C5CE7] transition group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
                   {item.icon}
                 </div>
@@ -443,9 +579,68 @@ export default function HomePage() {
                   <h3 className="headline text-2xl font-black tracking-tight text-white">{item.title}</h3>
                   <p className="mt-3 text-lg leading-relaxed text-white/56">{item.description}</p>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="section-space">
+        <div className="page-shell">
+          <div className="mb-20 text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
+              The Competitive Edge
+            </div>
+            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+              Why Sellworks beats
+              <br />
+              <span className="gradient-text-spotlight">traditional AI tools</span>
+            </h2>
+            <p className="mx-auto mt-8 max-w-3xl text-center text-2xl italic leading-relaxed text-white/54">
+              "Most tools create content. Sellworks creates conversion systems."
+            </p>
+          </div>
+
+          <Reveal className="panel overflow-hidden rounded-[2rem] border-white/10" variant="pop-in" delayMs={120}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/50">Feature</th>
+                    <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#6C5CE7]">Sellworks</th>
+                    <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/35">Others</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {comparisonRows.map((row) => (
+                    <tr key={row.label} className="group transition-colors hover:bg-white/[0.01]">
+                      <td className="px-8 py-6 font-bold tracking-tight text-white">{row.label}</td>
+                      <td className="px-8 py-6">
+                        {row.sellworks ? (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00D4FF]/10 text-[#00D4FF]">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-4 w-4">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <span className="text-xl text-white/18">×</span>
+                        )}
+                      </td>
+                      <td className="px-8 py-6">
+                        {row.others ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="h-5 w-5 text-white/35">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        ) : (
+                          <span className="text-xl text-white/18">×</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -453,39 +648,35 @@ export default function HomePage() {
         <div className="page-shell">
           <div className="mb-16 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#00D4FF]/20 bg-[#00D4FF]/10 px-4 py-1 text-sm font-bold text-[#00D4FF]">
-              Compare
+              The Process
             </div>
             <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
-              Why teams pick Sellworks
-              <br />
-              <span className="gradient-text">instead of stitching tools together</span>
+              How <span className="gradient-text-spotlight">Sellworks</span> works
             </h2>
           </div>
 
-          <div className="panel overflow-hidden rounded-[2rem]">
-            <div className="grid grid-cols-[1.4fr_repeat(3,0.7fr)] border-b border-white/8 bg-white/[0.03] text-sm font-black uppercase tracking-[0.18em] text-white/70">
-              <div className="px-6 py-5">Capability</div>
-              <div className="px-4 py-5 text-center">Sellworks</div>
-              <div className="px-4 py-5 text-center">Generic AI Tools</div>
-              <div className="px-4 py-5 text-center">Agency Workflow</div>
-            </div>
-            {comparisonRows.map((row) => (
-              <div key={row.label} className="grid grid-cols-[1.4fr_repeat(3,0.7fr)] border-b border-white/6 last:border-b-0">
-                <div className="px-6 py-5 text-sm font-medium text-white/82">{row.label}</div>
-                {[row.sellworks, row.tools, row.agencies].map((value, index) => (
-                  <div key={`${row.label}-${index}`} className="flex items-center justify-center px-4 py-5">
-                    <span
-                      className={
-                        value
-                          ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300"
-                          : "flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/26"
-                      }
-                    >
-                      {value ? "✓" : "—"}
-                    </span>
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+            {processSteps.map((step, index) => (
+              <Reveal
+                key={step.number}
+                className="relative flex flex-col items-center text-center"
+                variant="fade-up"
+                delayMs={100 + index * 140}
+              >
+                {index < processSteps.length - 1 ? (
+                  <div className="absolute right-0 top-12 hidden h-0.5 w-1/2 bg-gradient-to-r from-[#6C5CE7]/20 via-[#00D4FF]/20 to-transparent lg:block" />
+                ) : null}
+                <div className="group relative mb-10">
+                  <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#00D4FF] opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-20" />
+                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-white/5 bg-white/5 text-4xl font-black text-[#6C5CE7] transition-all duration-500 group-hover:scale-110 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
+                    {step.number}
                   </div>
-                ))}
-              </div>
+                </div>
+                <h3 className="headline mb-4 text-2xl font-black tracking-tight text-white">{step.title}</h3>
+                <p className="mx-auto mt-6 max-w-sm text-lg leading-relaxed text-white/56">
+                  {step.description}
+                </p>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -493,31 +684,54 @@ export default function HomePage() {
 
       <section className="section-space">
         <div className="page-shell">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
-              Example Kits
+          <div className="mb-16 flex flex-col items-center text-center sm:flex-row sm:items-end sm:justify-between sm:text-left">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
+              Community Gallery
+              </div>
+              <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">Get Inspired</h2>
+              <p className="mt-4 text-lg text-white/56">See what others are creating with Sellworks.</p>
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
-              See the kinds of products
-              <br />
-              <span className="gradient-text">Sellworks can package</span>
-            </h2>
+            <Link
+              href="/pricing"
+              className="marketing-accent-link group mt-8 flex items-center gap-2 text-sm font-black uppercase tracking-widest sm:mt-0"
+            >
+                <span>View All Examples</span>
+                <span className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5">
+                  <ArrowUpRightIcon />
+                </span>
+            </Link>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {showcase.map((item, index) => (
-              <div key={item.title} className="panel group overflow-hidden rounded-[2rem] transition hover:border-[#6C5CE7]/30 hover:shadow-[0_20px_40px_rgba(108,92,231,0.1)]">
-                <div className="aspect-square bg-[radial-gradient(circle_at_20%_20%,rgba(108,92,231,0.35),transparent_45%),linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))]" />
+              <Reveal
+                key={item.title}
+                className="panel group cursor-pointer overflow-hidden rounded-[2rem] transition-all duration-500 hover:border-[#6C5CE7]/30 hover:shadow-[0_20px_40px_rgba(108,92,231,0.1)]"
+                variant="pop-in"
+                delayMs={80 + index * 100}
+              >
+                <div className="aspect-square overflow-hidden bg-black/20">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
                 <div className="p-6">
                   <div className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
                     {item.label}
                   </div>
                   <h3 className="headline text-xl font-black tracking-tight text-white">{item.title}</h3>
-                  <div className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-white/42">
-                    Simulate demo {index + 1}
+                  <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/42 transition-colors group-hover:text-white">
+                    <span>Simulate demo</span>
+                    <span className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                      <ArrowUpRightIcon />
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -538,7 +752,11 @@ export default function HomePage() {
                 Join 2,000+ brands using Sellworks to launch products 10x faster.
               </p>
               <div className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
-                <Link href="/login" className="w-full rounded-2xl bg-white px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] text-[#6C5CE7] sm:w-auto">
+                <Link
+                  href="/login"
+                  className="w-full rounded-2xl bg-white px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] text-[#6C5CE7] sm:w-auto"
+                  style={{ color: "#6C5CE7" }}
+                >
                   Start Free Trial
                 </Link>
                 <Link href="/pricing" className="w-full rounded-2xl border-2 border-white/30 px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:w-auto">
@@ -552,6 +770,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <MarketingLoadingOverlay
+        isVisible={demoState === "loading"}
+        onComplete={handleDemoComplete}
+      />
     </div>
   );
 }

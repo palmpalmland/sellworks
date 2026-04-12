@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
@@ -14,6 +15,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          display_name: name.trim(),
+        },
+      },
     })
 
     if (error) {
@@ -59,6 +65,14 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8 space-y-4">
+            <input
+              type="text"
+              placeholder="Full name"
+              className="field"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
             <input
               type="email"
               placeholder="Email"

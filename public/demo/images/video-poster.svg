@@ -1,0 +1,20 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1080" height="1920" rx="56" fill="#0B0C12"/>
+  <rect x="40" y="40" width="1000" height="1840" rx="44" fill="url(#a)" fill-opacity=".25" stroke="#222638"/>
+  <rect x="90" y="120" width="250" height="56" rx="28" fill="#6C5CE7"/>
+  <text x="143" y="158" fill="white" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="3">VIRAL HOOK</text>
+  <rect x="370" y="120" width="170" height="56" rx="28" fill="#FFFFFF" fill-opacity=".1" stroke="#FFFFFF" stroke-opacity=".12"/>
+  <text x="428" y="158" fill="white" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="3">UGC</text>
+  <circle cx="540" cy="930" r="132" fill="#FFFFFF" fill-opacity=".08" stroke="#FFFFFF" stroke-opacity=".18"/>
+  <path d="M588 930L498 985V875L588 930Z" fill="white"/>
+  <text x="120" y="1550" fill="white" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">This portable blender is a</text>
+  <text x="120" y="1620" fill="white" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800">game changer for my routine.</text>
+  <text x="120" y="1750" fill="#A9B2FF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" letter-spacing="4">DEMO VIDEO POSTER</text>
+  <defs>
+    <linearGradient id="a" x1="130" y1="120" x2="950" y2="1800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C5CE7"/>
+      <stop offset=".45" stop-color="#0B0C12"/>
+      <stop offset="1" stop-color="#00D4FF"/>
+    </linearGradient>
+  </defs>
+</svg>
