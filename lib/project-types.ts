@@ -24,6 +24,7 @@ export type BrandRecord = {
   voice_tone: string | null;
   target_audience: string | null;
   primary_color: string | null;
+  enabled_platforms?: string[] | null;
   created_at: string;
   updated_at: string;
 };

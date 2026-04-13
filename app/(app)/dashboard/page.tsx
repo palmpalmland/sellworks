@@ -12,6 +12,7 @@ import {
   getStoredBrand,
 } from '@/lib/brand-session'
 import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
+import { formatLoadError } from '@/lib/ui-errors'
 
 type UsageData = {
   plan?: string
@@ -48,6 +49,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectRecord[]>([])
   const [quickUrl, setQuickUrl] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
   const [hydrationReady, setHydrationReady] = useState(false)
 
@@ -102,6 +104,7 @@ export default function DashboardPage() {
 
     const loadDashboard = async () => {
       try {
+        setError('')
         const {
           data: { session },
         } = await supabase.auth.getSession()
@@ -152,6 +155,8 @@ export default function DashboardPage() {
             projects: nextProjects,
           })
         )
+      } catch (err: unknown) {
+        setError(formatLoadError(err, 'Failed to load dashboard'))
       } finally {
         setLoading(false)
       }
@@ -171,17 +176,17 @@ export default function DashboardPage() {
 
   return (
     <main className="space-y-5 py-1">
-      <section className="overflow-hidden rounded-[1.8rem] bg-[#0a88b8] text-white">
+      <section className="panel-strong overflow-hidden rounded-[1.8rem] text-white">
         <div className="flex flex-col gap-7 px-6 py-7 md:px-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
-            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/70">
+            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/46">
               {brand?.name || 'Workspace Home'}
             </div>
-            <h1 className="mt-4 text-3xl font-light uppercase tracking-tight md:text-4xl">
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-4xl">
               Welcome back
             </h1>
-            <div className="mt-5 flex flex-wrap items-center gap-3 text-white/88">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/85 text-sm font-bold text-[#0a88b8]">
+            <div className="mt-5 flex flex-wrap items-center gap-3 text-white/76">
+              <div className="theme-subtle flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold theme-text">
                 {initials}
               </div>
               <div className="text-base font-medium">{displayName || user?.email || 'Sellworks operator'}</div>
@@ -190,15 +195,15 @@ export default function DashboardPage() {
 
           <div className="grid gap-6 sm:grid-cols-3">
             <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Recent Projects</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/42">Recent Projects</div>
               {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{projects.length}</div>}
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Active Plan</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/42">Active Plan</div>
               {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{usage?.plan_label || usage?.plan || 'Free'}</div>}
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Credits Left</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-white/42">Credits Left</div>
               {loading ? (
                 <MetricSkeleton />
               ) : (
@@ -235,17 +240,12 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/generate" className="cta-secondary text-sm">
-            Create Blank Project
-          </Link>
-          <Link href="/projects" className="cta-secondary text-sm">
-            Search Projects
-          </Link>
-          <Link href="/billing" className="cta-secondary text-sm">
-            Account
-          </Link>
-        </div>
+        {error ? (
+          <div className="mt-4 rounded-[1.2rem] border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            {error}
+          </div>
+        ) : null}
+
       </section>
 
       <section className="panel rounded-[1.8rem] p-6 md:p-7">

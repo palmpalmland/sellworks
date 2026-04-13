@@ -42,39 +42,50 @@ async function createSignedUrlMap(storagePaths: string[], expiresIn = 60 * 60) {
   );
 }
 
+async function loadAuthorizedProject(req: Request, projectId: string) {
+  const { user, error: authError } = await getUserFromBearerRequest(req);
+
+  if (authError || !user) {
+    return { error: authError || "Unauthorized", status: 401 as const };
+  }
+
+  const { data: project, error: projectError } = await supabaseAdmin
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .single();
+
+  if (projectError || !project) {
+    return {
+      error: projectError?.message || "Project not found",
+      status: 404 as const,
+    };
+  }
+
+  const canAccess = project.brand_id
+    ? await assertBrandAccess({ brandId: project.brand_id, userId: user.id })
+    : project.user_id === user.id;
+
+  if (!canAccess) {
+    return { error: "Forbidden", status: 403 as const };
+  }
+
+  return { user, project };
+}
+
 export async function GET(
   req: Request,
   context: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { user, error: authError } = await getUserFromBearerRequest(req);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
+    const projectResult = await loadAuthorizedProject(req, projectId);
 
-    const { data: project, error: projectError } = await supabaseAdmin
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .single();
-
-    if (projectError || !project) {
-      return NextResponse.json(
-        { error: projectError?.message || "Project not found" },
-        { status: 404 }
-      );
+    if ("error" in projectResult) {
+      return NextResponse.json({ error: projectResult.error }, { status: projectResult.status });
     }
 
-    const canAccess = project.brand_id
-      ? await assertBrandAccess({ brandId: project.brand_id, userId: user.id })
-      : project.user_id === user.id;
-
-    if (!canAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { project } = projectResult;
 
     const { data: outputs, error: outputsError } = await supabaseAdmin
       .from("project_outputs")
@@ -112,6 +123,17 @@ export async function GET(
       ...asset,
       signed_url: asset.storage_path ? assetUrlMap.get(asset.storage_path) || null : null,
     }));
+
+    let brand = null;
+    if (project.brand_id) {
+      const { data: brandRecord } = await supabaseAdmin
+        .from("brands")
+        .select("*")
+        .eq("id", project.brand_id)
+        .maybeSingle();
+
+      brand = brandRecord || null;
+    }
 
     const imageOutputPaths =
       (outputs || [])
@@ -271,6 +293,7 @@ export async function GET(
     return NextResponse.json({
       data: {
         project,
+        brand,
         outputs: hydratedOutputs,
         assets: hydratedAssets,
       },
@@ -279,6 +302,74 @@ export async function GET(
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Failed to load project",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const { projectId } = await context.params;
+    const projectResult = await loadAuthorizedProject(req, projectId);
+
+    if ("error" in projectResult) {
+      return NextResponse.json({ error: projectResult.error }, { status: projectResult.status });
+    }
+
+    const body = await req.json().catch(() => null);
+
+    const updates: Record<string, string | null> = {};
+
+    if (typeof body?.product_name === "string") {
+      const nextName = body.product_name.trim();
+      if (!nextName) {
+        return NextResponse.json(
+          { error: "Product name is required." },
+          { status: 400 }
+        );
+      }
+      updates.product_name = nextName;
+    }
+
+    if (typeof body?.product_url === "string") {
+      const nextUrl = body.product_url.trim();
+      updates.product_url = nextUrl || null;
+    }
+
+    if (typeof body?.selling_points === "string") {
+      updates.selling_points = body.selling_points.trim();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { error: "No editable project fields were provided." },
+        { status: 400 }
+      );
+    }
+
+    const { data: updatedProject, error: updateError } = await supabaseAdmin
+      .from("projects")
+      .update(updates)
+      .eq("id", projectId)
+      .select("*")
+      .single();
+
+    if (updateError || !updatedProject) {
+      return NextResponse.json(
+        { error: updateError?.message || "Failed to update project" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ data: updatedProject });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Failed to update project",
       },
       { status: 500 }
     );

@@ -118,6 +118,7 @@ export function useBrandSettings() {
     voiceTone: string
     targetAudience: string
     primaryColor: string
+    enabledPlatforms?: string[]
   }) => {
     if (!brand?.id) {
       setMessage('Select a brand first.')

@@ -10,6 +10,7 @@ import {
   getStoredBrand,
 } from '@/lib/brand-session'
 import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
+import { formatLoadError } from '@/lib/ui-errors'
 
 function ProjectCardSkeleton() {
   return (
@@ -119,7 +120,7 @@ export default function ProjectsPage() {
         setProjects(nextProjects)
         window.sessionStorage.setItem(cacheKey, JSON.stringify(nextProjects))
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load projects')
+        setError(formatLoadError(err, 'Failed to load projects'))
       } finally {
         setLoading(false)
       }
@@ -218,9 +219,9 @@ export default function ProjectsPage() {
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      <div className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-cyan-100">
-                        {project.platform}
-                      </div>
+                          <div className="platform-badge rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
+                            {project.platform}
+                          </div>
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/60">
                         {project.status}
                       </div>

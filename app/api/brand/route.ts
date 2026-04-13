@@ -111,6 +111,11 @@ export async function POST(req: Request) {
     const name = body.name?.toString().trim();
     const description = body.description?.toString().trim() || null;
     const primaryColor = body.primaryColor?.toString().trim() || null;
+    const enabledPlatforms = Array.isArray(body.enabledPlatforms)
+      ? body.enabledPlatforms
+          .map((item: unknown) => item?.toString().trim())
+          .filter((item: string) => Boolean(item))
+      : null;
 
     if (!name) {
       return NextResponse.json({ error: "Brand name is required" }, { status: 400 });
@@ -121,6 +126,7 @@ export async function POST(req: Request) {
       name,
       description,
       primaryColor,
+      enabledPlatforms,
     });
 
     const brands = await getBrandsForUser(user.id);
@@ -170,6 +176,11 @@ export async function PATCH(req: Request) {
     const voiceTone = body.voiceTone?.toString().trim() || null;
     const targetAudience = body.targetAudience?.toString().trim() || null;
     const primaryColor = body.primaryColor?.toString().trim() || null;
+    const enabledPlatforms = Array.isArray(body.enabledPlatforms)
+      ? body.enabledPlatforms
+          .map((item: unknown) => item?.toString().trim())
+          .filter((item: string) => Boolean(item))
+      : null;
 
     if (!name) {
       return NextResponse.json({ error: "Brand name is required" }, { status: 400 });
@@ -187,6 +198,7 @@ export async function PATCH(req: Request) {
         voice_tone: voiceTone,
         target_audience: targetAudience,
         primary_color: primaryColor,
+        enabled_platforms: enabledPlatforms,
         updated_at: new Date().toISOString(),
       })
       .eq("id", brand.id)

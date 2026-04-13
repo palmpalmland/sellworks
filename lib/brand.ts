@@ -12,6 +12,7 @@ export type BrandRecord = {
   voice_tone: string | null;
   target_audience: string | null;
   primary_color: string | null;
+  enabled_platforms?: string[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -132,6 +133,7 @@ export async function ensurePrimaryBrandForUser(user: User) {
       slug,
       description: "Primary workspace for generated content, assets, and campaign outputs.",
       primary_color: "#6d7cff",
+      enabled_platforms: null,
     })
     .select("*")
     .single();
@@ -165,8 +167,9 @@ export async function createBrandForUser(params: {
   name: string;
   description?: string | null;
   primaryColor?: string | null;
+  enabledPlatforms?: string[] | null;
 }) {
-  const { user, name, description, primaryColor } = params;
+  const { user, name, description, primaryColor, enabledPlatforms } = params;
   const trimmedName = name.trim();
 
   if (!trimmedName) {
@@ -183,6 +186,7 @@ export async function createBrandForUser(params: {
       slug,
       description: description || "Workspace for generated content, assets, and campaign outputs.",
       primary_color: primaryColor || "#6d7cff",
+      enabled_platforms: enabledPlatforms || null,
     })
     .select("*")
     .single();

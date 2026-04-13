@@ -10,6 +10,7 @@ import {
   getStoredBrand,
 } from '@/lib/brand-session'
 import type { BrandRecord } from '@/lib/project-types'
+import { formatLoadError } from '@/lib/ui-errors'
 
 type AssetRow = {
   id: string
@@ -135,7 +136,7 @@ export default function AssetsPage() {
         setRows(nextRows)
         window.sessionStorage.setItem(cacheKey, JSON.stringify(nextRows))
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load assets')
+        setError(formatLoadError(err, 'Failed to load assets'))
       } finally {
         setLoading(false)
       }
@@ -225,7 +226,7 @@ export default function AssetsPage() {
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/58">
                         {row.kind}
                       </div>
-                      <div className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100">
+                      <div className="platform-badge rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]">
                         {row.platform}
                       </div>
                     </div>

@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import SellworksLogo from '@/components/SellworksLogo'
 import type { BrandRecord } from '@/lib/project-types'
+import { useTheme } from '@/components/ThemeProvider'
 import {
   BRAND_CHANGED_EVENT,
   emitBrandChanged,
@@ -23,12 +24,23 @@ type BrandMembershipItem = {
   brand: BrandRecord
 }
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sellworks-sidebar-collapsed'
+
+type NavLinkItem = {
+  href: string
+  label: string
+  icon: string
+}
+
 export default function AppShell({ children }: AppShellProps) {
   const [user, setUser] = useState<User | null>(null)
   const [brand, setBrand] = useState<BrandRecord | null>(null)
   const [brands, setBrands] = useState<BrandRecord[]>([])
   const [accountOpen, setAccountOpen] = useState(false)
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false)
   const [brandMenuOpen, setBrandMenuOpen] = useState(false)
+  const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [createBrandOpen, setCreateBrandOpen] = useState(false)
   const [createBrandName, setCreateBrandName] = useState('')
   const [brandActionLoading, setBrandActionLoading] = useState(false)
@@ -37,12 +49,17 @@ export default function AppShell({ children }: AppShellProps) {
   const router = useRouter()
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
   const brandMenuRef = useRef<HTMLDivElement | null>(null)
+  const createMenuRef = useRef<HTMLDivElement | null>(null)
+  const { themePreference, setThemePreference } = useTheme()
 
   const displayName = user?.user_metadata?.display_name?.toString().trim() || null
   const initialsSource = displayName || user?.email || 'Sellworks'
   const initials = initialsSource.slice(0, 2).toUpperCase()
 
   useEffect(() => {
+    const storedCollapsed = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY)
+    setSidebarCollapsed(storedCollapsed === 'true')
+
     const init = async () => {
       const cachedBrand = getStoredBrand()
       if (cachedBrand) {
@@ -102,12 +119,20 @@ export default function AppShell({ children }: AppShellProps) {
   }, [router])
 
   useEffect(() => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed))
+  }, [sidebarCollapsed])
+
+  useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (!accountMenuRef.current?.contains(event.target as Node)) {
         setAccountOpen(false)
+        setThemeMenuOpen(false)
       }
       if (!brandMenuRef.current?.contains(event.target as Node)) {
         setBrandMenuOpen(false)
+      }
+      if (!createMenuRef.current?.contains(event.target as Node)) {
+        setCreateMenuOpen(false)
       }
     }
 
@@ -194,11 +219,11 @@ export default function AppShell({ children }: AppShellProps) {
     }
   }
 
-  const links = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/projects', label: 'Projects' },
-    { href: '/assets', label: 'Assets' },
-    { href: '/billing', label: 'Account' },
+  const links: NavLinkItem[] = [
+    { href: '/dashboard', label: 'Dashboard', icon: '⌂' },
+    { href: '/projects', label: 'Projects', icon: '▣' },
+    { href: '/assets', label: 'Assets', icon: '◫' },
+    { href: '/billing', label: 'Account', icon: '○' },
   ]
 
   const isBrandSettingsRoute = pathname.startsWith('/brand')
@@ -212,13 +237,13 @@ export default function AppShell({ children }: AppShellProps) {
       : 'rounded-2xl px-3.5 py-2.5 text-[13px] text-white/52 transition hover:bg-white/[0.03] hover:text-white'
 
   return (
-    <div className="h-screen overflow-hidden bg-[#060608]">
-      <header className="sticky top-0 z-40 border-b border-white/8 bg-[#090a0f]/92 backdrop-blur-xl">
+    <div className="h-screen overflow-hidden app-theme-bg">
+      <header className="theme-header sticky top-0 z-40 border-b backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between gap-4 px-4 md:px-5 lg:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="hidden lg:flex">
               <Link href="/dashboard" className="flex items-center gap-3">
-                <SellworksLogo className="h-9 w-9 shrink-0" />
+                <SellworksLogo className="h-8 w-8 shrink-0" />
               </Link>
             </div>
 
@@ -226,27 +251,27 @@ export default function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setBrandMenuOpen((current) => !current)}
-                className="flex min-w-[220px] items-center gap-3 rounded-[1rem] border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition hover:bg-white/[0.07]"
+                className="theme-subtle-hover flex h-10 min-w-[220px] items-center gap-2.5 rounded-full border px-3 text-left transition"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.8rem] bg-white/[0.08] text-sm font-bold text-white">
+                <div className="theme-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold theme-text">
                   {(brand?.name || 'B').slice(0, 1).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-white">
+                  <div className="truncate text-[13px] font-semibold theme-text">
                     {brand?.name || 'My Brand'}
                   </div>
                 </div>
-                <div className="text-xs text-white/44">v</div>
+                <div className="text-[10px] theme-text-muted">v</div>
               </button>
 
               {brandMenuOpen ? (
-                <div className="absolute left-0 top-14 z-50 w-[340px] rounded-[1.4rem] border border-white/10 bg-[#111217] p-4 shadow-2xl">
+                <div className="theme-surface absolute left-0 top-14 z-50 w-[340px] rounded-[1.4rem] border p-4 shadow-2xl">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] bg-white/[0.08] text-lg font-bold text-white">
+                    <div className="theme-subtle flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] text-lg font-bold theme-text">
                       {(brand?.name || 'B').slice(0, 1).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-lg font-semibold text-white">{brand?.name || 'My Brand'}</div>
+                      <div className="truncate text-lg font-semibold theme-text">{brand?.name || 'My Brand'}</div>
                     </div>
                   </div>
 
@@ -259,8 +284,8 @@ export default function AppShell({ children }: AppShellProps) {
                   {brands.length > 1 ? (
                     <div className="mt-4 border-t border-white/8 pt-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <div className="text-xs uppercase tracking-[0.18em] text-white/32">Switch brand</div>
-                        <div className="text-[11px] uppercase tracking-[0.16em] text-white/28">
+                        <div className="text-xs uppercase tracking-[0.18em] theme-text-muted">Switch brand</div>
+                        <div className="text-[11px] uppercase tracking-[0.16em] theme-text-muted">
                           {brands.length} connected
                         </div>
                       </div>
@@ -272,11 +297,11 @@ export default function AppShell({ children }: AppShellProps) {
                             onClick={() => handleBrandSelect(item)}
                             className={`flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left transition ${
                               brand?.id === item.id
-                                ? 'bg-white/[0.08] text-white'
-                                : 'text-white/72 hover:bg-white/[0.05]'
+                                ? 'theme-subtle theme-text'
+                                : 'theme-text-muted hover:bg-white/[0.05]'
                             }`}
                           >
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.75rem] bg-white/[0.08] text-xs font-bold text-white">
+                            <div className="theme-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.75rem] text-xs font-bold theme-text">
                               {item.name.slice(0, 1).toUpperCase()}
                             </div>
                             <div className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</div>
@@ -293,7 +318,7 @@ export default function AppShell({ children }: AppShellProps) {
                         setCreateBrandOpen(true)
                         setBrandActionMessage('')
                       }}
-                      className="flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-white/38 transition hover:bg-white/[0.04] hover:text-white/70"
+                      className="theme-text-muted flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left transition hover:bg-white/[0.04] hover:text-white/70"
                     >
                       <span className="text-lg leading-none">+</span>
                       <span className="text-sm font-medium">Create new brand space</span>
@@ -302,7 +327,7 @@ export default function AppShell({ children }: AppShellProps) {
 
                   {createBrandOpen ? (
                     <div className="mt-4 border-t border-white/8 pt-4">
-                      <div className="text-xs uppercase tracking-[0.18em] text-white/32">New brand</div>
+                      <div className="text-xs uppercase tracking-[0.18em] theme-text-muted">New brand</div>
                       <input
                         type="text"
                         value={createBrandName}
@@ -322,7 +347,7 @@ export default function AppShell({ children }: AppShellProps) {
                   ) : null}
 
                   {brandActionMessage ? (
-                    <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3 text-sm text-white/62">
+                    <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3 text-sm theme-text-muted">
                       {brandActionMessage}
                     </div>
                   ) : null}
@@ -332,41 +357,112 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <Link href="/generate" className="cta-primary px-4 py-2.5 text-sm">
-              New Project
-            </Link>
+            <div className="relative" ref={createMenuRef}>
+              <button
+                type="button"
+                onClick={() => setCreateMenuOpen((current) => !current)}
+                className="cta-primary h-10 gap-2 rounded-full px-4 text-sm"
+              >
+                <span className="text-base leading-none">+</span>
+                <span>New</span>
+              </button>
+
+              {createMenuOpen ? (
+                <div className="theme-surface absolute right-0 top-12 z-50 w-[220px] rounded-[1.2rem] border p-2 shadow-2xl">
+                  <Link
+                    href="/generate"
+                    onClick={() => setCreateMenuOpen(false)}
+                    className="theme-text flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm font-medium transition hover:bg-white/[0.04]"
+                  >
+                    <span>New project</span>
+                    <span className="theme-text-muted text-xs">Generate</span>
+                  </Link>
+                  <Link
+                    href="/assets"
+                    onClick={() => setCreateMenuOpen(false)}
+                    className="theme-text flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm font-medium transition hover:bg-white/[0.04]"
+                  >
+                    <span>New asset</span>
+                    <span className="theme-text-muted text-xs">Library</span>
+                  </Link>
+                </div>
+              ) : null}
+            </div>
 
             <div className="relative" ref={accountMenuRef}>
               <button
                 type="button"
                 onClick={() => setAccountOpen((current) => !current)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-xs font-bold tracking-[0.12em] text-white transition hover:bg-white/[0.08]"
+                className="theme-subtle-hover flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold tracking-[0.12em] theme-text transition"
               >
                 {initials}
               </button>
 
               {accountOpen ? (
-                <div className="absolute right-0 top-12 z-50 w-[280px] rounded-[1.4rem] border border-white/10 bg-[#0c0d12] p-4 shadow-2xl">
-                  <div className="text-xs uppercase tracking-[0.18em] text-white/32">Signed in as</div>
+                <div className="theme-surface-alt absolute right-0 top-12 z-50 w-[300px] rounded-[1.4rem] border p-4 shadow-2xl">
+                  <div className="text-xs uppercase tracking-[0.18em] theme-text-muted">Signed in as</div>
                   <div className="mt-3 flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-xs font-bold tracking-[0.12em] text-white">
+                    <div className="theme-subtle flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xs font-bold tracking-[0.12em] theme-text">
                       {initials}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-white">
+                      <div className="truncate text-sm font-semibold theme-text">
                         {displayName || 'Sellworks user'}
                       </div>
-                      <div className="truncate text-xs text-white/42">{user?.email}</div>
+                      <div className="truncate text-xs theme-text-muted">{user?.email}</div>
                     </div>
                   </div>
 
                   <div className="mt-4 space-y-2">
-                    <Link href="/brand/general" className="cta-secondary w-full justify-start text-sm" onClick={() => setAccountOpen(false)}>
-                      Brand Settings
-                    </Link>
                     <Link href="/billing" className="cta-secondary w-full justify-start text-sm" onClick={() => setAccountOpen(false)}>
                       Account Settings
                     </Link>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setThemeMenuOpen((current) => !current)}
+                        className="cta-secondary w-full justify-between text-sm"
+                      >
+                        <span>Theme</span>
+                        <span className="theme-text-muted text-xs">
+                          {themePreference === 'system'
+                            ? 'System'
+                            : themePreference === 'light'
+                              ? 'Light'
+                              : 'Dark'}
+                        </span>
+                      </button>
+
+                      {themeMenuOpen ? (
+                        <div className="theme-surface absolute right-[calc(100%+0.75rem)] top-0 z-50 w-[220px] rounded-[1.2rem] border p-2 shadow-2xl">
+                          {([
+                            { value: 'light', label: 'Light' },
+                            { value: 'dark', label: 'Dark' },
+                            { value: 'system', label: 'Sync with system' },
+                          ] as const).map((option) => {
+                            const active = themePreference === option.value
+                            return (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => {
+                                  setThemePreference(option.value)
+                                  setThemeMenuOpen(false)
+                                }}
+                                className={`flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm transition ${
+                                  active
+                                    ? 'theme-subtle theme-text'
+                                    : 'theme-text-muted hover:bg-white/[0.04] hover:text-white'
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                                <span className={active ? 'theme-text' : 'opacity-0'}>✓</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
                     <button onClick={handleLogout} className="cta-secondary w-full justify-start text-sm">
                       Logout
                     </button>
@@ -380,14 +476,52 @@ export default function AppShell({ children }: AppShellProps) {
 
       <div className="flex h-[calc(100vh-4rem)]">
         {!isBrandSettingsRoute ? (
-        <aside className="hidden h-full w-[248px] shrink-0 border-r border-white/8 bg-[#08090d] px-4 py-4 lg:flex lg:flex-col">
-          <nav className="flex flex-col gap-1.5 text-sm font-semibold">
+        <aside
+          className={`theme-sidebar hidden h-full shrink-0 border-r px-3 py-4 transition-[width] duration-200 lg:flex lg:flex-col ${
+            sidebarCollapsed ? 'w-[76px]' : 'w-[220px]'
+          }`}
+        >
+          <div className="hidden">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((current) => !current)}
+              className="theme-subtle theme-subtle-hover flex h-9 w-9 items-center justify-center rounded-[0.9rem] text-sm theme-text transition"
+              aria-label={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+              title={sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'}
+            >
+              {sidebarCollapsed ? '→' : '←'}
+            </button>
+          </div>
+
+          <nav className="flex flex-1 flex-col gap-1.5 text-sm font-semibold">
             {links.map((item) => (
-              <Link key={item.href} href={item.href} className={linkClassName(item.href)}>
-                {item.label}
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${linkClassName(item.href)} ${sidebarCollapsed ? 'flex justify-center px-0' : 'flex items-center gap-3'}`}
+                title={sidebarCollapsed ? item.label : undefined}
+              >
+                <span className={`${sidebarCollapsed ? 'text-base' : 'text-sm'} leading-none`}>
+                  {item.icon}
+                </span>
+                {!sidebarCollapsed ? <span>{item.label}</span> : null}
               </Link>
             ))}
           </nav>
+          <div className={`mt-4 flex border-t border-white/8 pt-3 ${sidebarCollapsed ? 'justify-center' : 'justify-start'}`}>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((current) => !current)}
+              className="theme-subtle theme-subtle-hover flex h-9 w-9 items-center justify-center rounded-[0.8rem] theme-text transition"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <span className="flex h-4 w-4 items-center gap-[3px]">
+                <span className="block h-4 w-[5px] rounded-[2px] border border-current opacity-90" />
+                <span className="block h-4 w-[8px] rounded-[2px] border border-current opacity-55" />
+              </span>
+            </button>
+          </div>
         </aside>
         ) : null}
 
