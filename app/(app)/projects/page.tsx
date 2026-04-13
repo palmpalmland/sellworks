@@ -3,6 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  BRAND_CHANGED_EVENT,
+  getBrandScopedCacheKey,
+  getStoredActiveBrandId,
+  getStoredBrand,
+} from '@/lib/brand-session'
 import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
 
 function ProjectCardSkeleton() {
@@ -26,28 +32,53 @@ function ProjectCardSkeleton() {
 
 export default function ProjectsPage() {
   const [brand, setBrand] = useState<BrandRecord | null>(null)
-  const [brandReady, setBrandReady] = useState(true)
   const [projects, setProjects] = useState<ProjectRecord[]>([])
   const [query, setQuery] = useState('')
   const [platformFilter, setPlatformFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
+  const [hydrationReady, setHydrationReady] = useState(false)
 
   useEffect(() => {
-    const cachedBrand = window.sessionStorage.getItem('sellworks-brand')
+    const cachedBrand = getStoredBrand()
     if (cachedBrand) {
-      try {
-        setBrand(JSON.parse(cachedBrand) as BrandRecord)
-      } catch {}
+      setBrand(cachedBrand)
     }
 
-    const cachedProjects = window.sessionStorage.getItem('sellworks-projects-cache')
+    setActiveBrandId(getStoredActiveBrandId())
+    setHydrationReady(true)
+
+    const handleBrandChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ brandId?: string; brand?: BrandRecord }>
+      setActiveBrandId(customEvent.detail?.brandId || getStoredActiveBrandId())
+      if (customEvent.detail?.brand) {
+        setBrand(customEvent.detail.brand)
+      }
+    }
+
+    window.addEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    return () => {
+      window.removeEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hydrationReady) {
+      return
+    }
+
+    const cacheKey = getBrandScopedCacheKey('sellworks-projects-cache', activeBrandId)
+    const cachedProjects = window.sessionStorage.getItem(cacheKey)
+
     if (cachedProjects) {
       try {
         setProjects(JSON.parse(cachedProjects) as ProjectRecord[])
         setLoading(false)
       } catch {}
+    } else {
+      setLoading(true)
     }
 
     const loadProjects = async () => {
@@ -64,19 +95,15 @@ export default function ProjectsPage() {
           return
         }
 
-        const brandPromise = session?.access_token
-          ? fetch('/api/brand', {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
-            })
-              .then((res) => (res.ok ? res.json() : null))
-              .catch(() => null)
-          : Promise.resolve(null)
+        const brandQuery = activeBrandId ? `?brandId=${encodeURIComponent(activeBrandId)}` : ''
 
         const [brandJson, projectsJson] = await Promise.all([
-          brandPromise,
-          fetch('/api/projects', {
+          fetch(`/api/brand${brandQuery}`, {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }).then((res) => (res.ok ? res.json() : null)),
+          fetch(`/api/projects${brandQuery}`, {
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
             },
@@ -84,29 +111,22 @@ export default function ProjectsPage() {
         ])
 
         const currentBrand = brandJson?.data?.brand as BrandRecord | undefined
-        setBrand(currentBrand || null)
-        setBrandReady(Boolean(currentBrand))
-
         if (currentBrand) {
-          window.sessionStorage.setItem('sellworks-brand', JSON.stringify(currentBrand))
+          setBrand(currentBrand)
         }
 
         const nextProjects = (projectsJson.data as ProjectRecord[]) || []
         setProjects(nextProjects)
-        window.sessionStorage.setItem('sellworks-projects-cache', JSON.stringify(nextProjects))
+        window.sessionStorage.setItem(cacheKey, JSON.stringify(nextProjects))
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message)
-        } else {
-          setError('Failed to load projects')
-        }
+        setError(err instanceof Error ? err.message : 'Failed to load projects')
       } finally {
         setLoading(false)
       }
     }
 
     loadProjects()
-  }, [])
+  }, [activeBrandId])
 
   const platforms = useMemo(
     () => ['All', ...new Set(projects.map((project) => project.platform).filter(Boolean))],
@@ -130,11 +150,6 @@ export default function ProjectsPage() {
   return (
     <main className="space-y-5 py-1">
       <section className="panel rounded-[1.8rem] p-6 md:p-7">
-        {!brandReady && (
-          <div className="mb-5 rounded-[1.2rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-            Brand workspace tables are not available yet, so this page is showing your existing personal projects.
-          </div>
-        )}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="text-3xl font-bold text-white">Projects</div>

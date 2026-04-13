@@ -5,6 +5,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import {
+  BRAND_CHANGED_EVENT,
+  getBrandScopedCacheKey,
+  getStoredActiveBrandId,
+  getStoredBrand,
+} from '@/lib/brand-session'
 import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
 
 type UsageData = {
@@ -37,25 +43,48 @@ export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [brand, setBrand] = useState<BrandRecord | null>(null)
-  const [brandReady, setBrandReady] = useState(true)
   const [usage, setUsage] = useState<UsageData | null>(null)
   const [projects, setProjects] = useState<ProjectRecord[]>([])
   const [quickUrl, setQuickUrl] = useState('')
   const [loading, setLoading] = useState(true)
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
+  const [hydrationReady, setHydrationReady] = useState(false)
 
   const displayName = user?.user_metadata?.display_name?.toString().trim() || null
   const initialsSource = displayName || user?.email || 'Sellworks'
   const initials = initialsSource.slice(0, 2).toUpperCase()
 
   useEffect(() => {
-    const cachedBrand = window.sessionStorage.getItem('sellworks-brand')
+    const cachedBrand = getStoredBrand()
     if (cachedBrand) {
-      try {
-        setBrand(JSON.parse(cachedBrand) as BrandRecord)
-      } catch {}
+      setBrand(cachedBrand)
     }
 
-    const cachedDashboard = window.sessionStorage.getItem('sellworks-dashboard-cache')
+    setActiveBrandId(getStoredActiveBrandId())
+    setHydrationReady(true)
+
+    const handleBrandChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ brandId?: string; brand?: BrandRecord }>
+      setActiveBrandId(customEvent.detail?.brandId || getStoredActiveBrandId())
+      if (customEvent.detail?.brand) {
+        setBrand(customEvent.detail.brand)
+      }
+    }
+
+    window.addEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    return () => {
+      window.removeEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hydrationReady) {
+      return
+    }
+
+    const cacheKey = getBrandScopedCacheKey('sellworks-dashboard-cache', activeBrandId)
+    const cachedDashboard = window.sessionStorage.getItem(cacheKey)
+
     if (cachedDashboard) {
       try {
         const parsed = JSON.parse(cachedDashboard) as {
@@ -66,6 +95,8 @@ export default function DashboardPage() {
         setProjects(parsed.projects || [])
         setLoading(false)
       } catch {}
+    } else {
+      setLoading(true)
     }
 
     const loadDashboard = async () => {
@@ -76,22 +107,22 @@ export default function DashboardPage() {
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
-        if (!currentUser) return
+        if (!currentUser) {
+          return
+        }
 
-        const brandPromise = session?.access_token
-          ? fetch('/api/brand', {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
-            })
-              .then((res) => (res.ok ? res.json() : null))
-              .catch(() => null)
-          : Promise.resolve(null)
+        const brandQuery = activeBrandId ? `brandId=${encodeURIComponent(activeBrandId)}` : ''
+        const projectsPath = brandQuery ? `/api/projects?limit=6&${brandQuery}` : '/api/projects?limit=6'
+        const brandPath = brandQuery ? `/api/brand?${brandQuery}` : '/api/brand'
 
         const [brandJson, usageJson, projectsJson] = await Promise.all([
-          brandPromise,
+          fetch(brandPath, {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }).then((res) => (res.ok ? res.json() : null)),
           fetch(`/api/usage?userId=${currentUser.id}`).then((res) => res.json()),
-          fetch('/api/projects?limit=6', {
+          fetch(projectsPath, {
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
             },
@@ -99,24 +130,17 @@ export default function DashboardPage() {
         ])
 
         const currentBrand = brandJson?.data?.brand as BrandRecord | undefined
-        setBrand(currentBrand || null)
-        setBrandReady(Boolean(currentBrand))
-
         if (currentBrand) {
-          window.sessionStorage.setItem('sellworks-brand', JSON.stringify(currentBrand))
+          setBrand(currentBrand)
         }
 
-        if (usageJson?.data) {
-          setUsage(usageJson.data)
-        }
-
-        const nextProjects = (projectsJson?.data as ProjectRecord[]) || []
         const nextUsage = (usageJson?.data as UsageData | undefined) || null
+        const nextProjects = (projectsJson?.data as ProjectRecord[]) || []
 
-        setProjects(nextProjects)
         setUsage(nextUsage)
+        setProjects(nextProjects)
         window.sessionStorage.setItem(
-          'sellworks-dashboard-cache',
+          cacheKey,
           JSON.stringify({
             usage: nextUsage,
             projects: nextProjects,
@@ -128,7 +152,7 @@ export default function DashboardPage() {
     }
 
     loadDashboard()
-  }, [])
+  }, [activeBrandId])
 
   const handleQuickCreate = () => {
     const params = new URLSearchParams()
@@ -180,11 +204,6 @@ export default function DashboardPage() {
       </section>
 
       <section className="panel rounded-[1.8rem] p-6 md:p-7">
-        {!brandReady && (
-          <div className="mb-5 rounded-[1.2rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-            Brand workspace is not ready yet in this environment, so dashboard is temporarily using your personal projects view.
-          </div>
-        )}
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-xl font-bold text-white">Quick create</div>

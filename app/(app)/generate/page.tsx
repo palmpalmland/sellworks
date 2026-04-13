@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getStoredActiveBrandId } from '@/lib/brand-session'
 import {
   buildProjectAssetPath,
   PROJECT_ASSETS_BUCKET,
@@ -137,6 +138,7 @@ export default function GeneratePage() {
           platform,
           style,
           productUrl,
+          brandId: getStoredActiveBrandId(),
           uploadedAssets,
           generationPlan: {
             generateCopy,

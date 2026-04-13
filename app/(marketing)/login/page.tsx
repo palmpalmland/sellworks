@@ -11,8 +11,17 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
   const router = useRouter()
 
+  const getNextPath = () => {
+    if (typeof window === 'undefined') {
+      return '/dashboard'
+    }
+
+    return new URLSearchParams(window.location.search).get('next') || '/dashboard'
+  }
+
   const handleSignUp = async () => {
-    const { error } = await supabase.auth.signUp({
+    const nextPath = getNextPath()
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -24,12 +33,15 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(error.message)
+    } else if (data.session) {
+      router.push(nextPath)
     } else {
-      setMessage('Check your email to confirm')
+      setMessage('Check your email to confirm, then come back to finish joining the workspace.')
     }
   }
 
   const handleSignIn = async () => {
+    const nextPath = getNextPath()
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -38,7 +50,7 @@ export default function LoginPage() {
     if (error) {
       setMessage(error.message)
     } else {
-      router.push('/dashboard')
+      router.push(nextPath)
     }
   }
 
@@ -100,7 +112,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-4 text-sm text-white/58">
-            {message || "Use a real email if you want to test signup and confirmation flow."}
+            {message || 'Use a real email if you want to test signup and confirmation flow.'}
           </div>
         </section>
       </div>

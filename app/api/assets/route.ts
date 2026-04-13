@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertBrandAccess, ensurePrimaryBrandForUser } from "@/lib/brand";
 import { PROJECT_ASSETS_BUCKET } from "@/lib/project-storage";
 import { getUserFromBearerRequest } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -45,10 +46,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: authError || "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const requestedBrandId = searchParams.get("brandId");
+
+    let scopedBrandId = requestedBrandId;
+
+    if (scopedBrandId) {
+      const canAccess = await assertBrandAccess({ brandId: scopedBrandId, userId: user.id });
+
+      if (!canAccess) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      const { brand } = await ensurePrimaryBrandForUser(user);
+      scopedBrandId = brand.id;
+    }
+
     const { data: projects, error: projectsError } = await supabaseAdmin
       .from("projects")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("brand_id", scopedBrandId)
       .order("created_at", { ascending: false });
 
     if (projectsError) {

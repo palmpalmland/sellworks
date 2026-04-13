@@ -3,6 +3,12 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import {
+  BRAND_CHANGED_EVENT,
+  getBrandScopedCacheKey,
+  getStoredActiveBrandId,
+  getStoredBrand,
+} from '@/lib/brand-session'
 import type { BrandRecord } from '@/lib/project-types'
 
 type AssetRow = {
@@ -28,7 +34,6 @@ function AssetRowSkeleton() {
         </div>
         <div className="mt-3 h-5 w-40 animate-pulse rounded bg-white/10" />
         <div className="mt-2 h-4 w-28 animate-pulse rounded bg-white/8" />
-        <div className="mt-3 h-4 w-full max-w-[420px] animate-pulse rounded bg-white/8" />
       </div>
       <div className="flex shrink-0 flex-col gap-3 md:items-end">
         <div className="h-4 w-20 animate-pulse rounded bg-white/8" />
@@ -43,28 +48,53 @@ function AssetRowSkeleton() {
 
 export default function AssetsPage() {
   const [brand, setBrand] = useState<BrandRecord | null>(null)
-  const [brandReady, setBrandReady] = useState(true)
   const [rows, setRows] = useState<AssetRow[]>([])
   const [query, setQuery] = useState('')
   const [projectQuery, setProjectQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('All')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
+  const [hydrationReady, setHydrationReady] = useState(false)
 
   useEffect(() => {
-    const cachedBrand = window.sessionStorage.getItem('sellworks-brand')
+    const cachedBrand = getStoredBrand()
     if (cachedBrand) {
-      try {
-        setBrand(JSON.parse(cachedBrand) as BrandRecord)
-      } catch {}
+      setBrand(cachedBrand)
     }
 
-    const cachedAssets = window.sessionStorage.getItem('sellworks-assets-cache')
+    setActiveBrandId(getStoredActiveBrandId())
+    setHydrationReady(true)
+
+    const handleBrandChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ brandId?: string; brand?: BrandRecord }>
+      setActiveBrandId(customEvent.detail?.brandId || getStoredActiveBrandId())
+      if (customEvent.detail?.brand) {
+        setBrand(customEvent.detail.brand)
+      }
+    }
+
+    window.addEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    return () => {
+      window.removeEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hydrationReady) {
+      return
+    }
+
+    const cacheKey = getBrandScopedCacheKey('sellworks-assets-cache', activeBrandId)
+    const cachedAssets = window.sessionStorage.getItem(cacheKey)
+
     if (cachedAssets) {
       try {
         setRows(JSON.parse(cachedAssets) as AssetRow[])
         setLoading(false)
       } catch {}
+    } else {
+      setLoading(true)
     }
 
     const loadAssets = async () => {
@@ -81,19 +111,15 @@ export default function AssetsPage() {
           return
         }
 
-        const brandPromise = session?.access_token
-          ? fetch('/api/brand', {
-              headers: {
-                Authorization: `Bearer ${session.access_token}`,
-              },
-            })
-              .then((res) => (res.ok ? res.json() : null))
-              .catch(() => null)
-          : Promise.resolve(null)
+        const brandQuery = activeBrandId ? `?brandId=${encodeURIComponent(activeBrandId)}` : ''
 
         const [brandJson, assetsJson] = await Promise.all([
-          brandPromise,
-          fetch('/api/assets', {
+          fetch(`/api/brand${brandQuery}`, {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }).then((res) => (res.ok ? res.json() : null)),
+          fetch(`/api/assets${brandQuery}`, {
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
             },
@@ -101,29 +127,22 @@ export default function AssetsPage() {
         ])
 
         const currentBrand = brandJson?.data?.brand as BrandRecord | undefined
-        setBrand(currentBrand || null)
-        setBrandReady(Boolean(currentBrand))
-
         if (currentBrand) {
-          window.sessionStorage.setItem('sellworks-brand', JSON.stringify(currentBrand))
+          setBrand(currentBrand)
         }
 
         const nextRows = (assetsJson.data as AssetRow[]) || []
         setRows(nextRows)
-        window.sessionStorage.setItem('sellworks-assets-cache', JSON.stringify(nextRows))
+        window.sessionStorage.setItem(cacheKey, JSON.stringify(nextRows))
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message)
-        } else {
-          setError('Failed to load assets')
-        }
+        setError(err instanceof Error ? err.message : 'Failed to load assets')
       } finally {
         setLoading(false)
       }
     }
 
     loadAssets()
-  }, [])
+  }, [activeBrandId])
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -140,11 +159,6 @@ export default function AssetsPage() {
   return (
     <main className="space-y-5 py-1">
       <section className="panel rounded-[1.8rem] p-6 md:p-7">
-        {!brandReady && (
-          <div className="mb-5 rounded-[1.2rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-            Brand workspace tables are not available yet, so assets are loading from your personal projects instead.
-          </div>
-        )}
         <div className="text-2xl font-bold text-white">Assets</div>
         <p className="mt-2 text-sm leading-7 text-white/58">
           Search everything already generated for {brand?.name || 'this brand'}: copy, images, and video outputs.
@@ -189,7 +203,7 @@ export default function AssetsPage() {
             : filteredRows.map((row) => (
                 <article
                   key={row.id}
-                  className="flex flex-col gap-4 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-4 transition hover:border-white/14 hover:bg-white/[0.04] md:flex-row md:items-start"
+                  className="flex flex-col gap-4 rounded-[1.4rem] border border-white/8 bg-white/[0.02] px-5 py-3.5 transition hover:border-white/14 hover:bg-white/[0.04] md:flex-row md:items-center"
                 >
                   <Link
                     href={`/projects/${row.projectId}`}
@@ -217,7 +231,6 @@ export default function AssetsPage() {
                     </div>
                     <div className="mt-3 text-base font-semibold text-white">{row.title}</div>
                     <div className="mt-1 text-sm text-white/46">{row.projectName}</div>
-                    <div className="mt-3 line-clamp-2 text-sm leading-7 text-white/58">{row.preview}</div>
                   </div>
 
                   <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">

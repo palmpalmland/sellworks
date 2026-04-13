@@ -14,7 +14,7 @@ import {
 } from "@/lib/project-storage";
 import { createSeedanceTask } from "@/lib/seedance";
 import { getUsage, incrementUsage, logUsage } from "@/lib/usage";
-import { ensurePrimaryBrandForUser } from "@/lib/brand";
+import { assertBrandAccess, ensurePrimaryBrandForUser } from "@/lib/brand";
 
 type PersistedGeneratedImage = {
   title: string;
@@ -138,10 +138,25 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const limitParam = Number(searchParams.get("limit") || "0");
+    const requestedBrandId = searchParams.get("brandId");
+
+    let scopedBrandId = requestedBrandId;
+
+    if (scopedBrandId) {
+      const canAccess = await assertBrandAccess({ brandId: scopedBrandId, userId: user.id });
+
+      if (!canAccess) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      const { brand } = await ensurePrimaryBrandForUser(user);
+      scopedBrandId = brand.id;
+    }
+
     const query = supabaseAdmin
       .from("projects")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("brand_id", scopedBrandId)
       .order("created_at", { ascending: false });
 
     const limitedQuery = limitParam > 0 ? query.limit(limitParam) : query;
@@ -187,6 +202,7 @@ export async function POST(req: Request) {
       productUrl?: string;
       uploadedAssets?: UploadedProjectAsset[];
       generationPlan?: GenerationPlan;
+      brandId?: string;
     };
 
     if (!productName || !sellingPoints || !platform || !style) {
@@ -216,7 +232,20 @@ export async function POST(req: Request) {
     }
 
     const usage = await getUsage(user.id);
-    const { brand } = await ensurePrimaryBrandForUser(user);
+    const fallbackBrand = await ensurePrimaryBrandForUser(user);
+    const requestedBrandId = body.brandId?.toString().trim() || null;
+    const brand =
+      requestedBrandId && requestedBrandId !== fallbackBrand.brand.id
+        ? await (async () => {
+            const canAccess = await assertBrandAccess({ brandId: requestedBrandId, userId: user.id });
+
+            if (!canAccess) {
+              throw new Error("You do not have access to this brand workspace");
+            }
+
+            return { id: requestedBrandId };
+          })()
+        : fallbackBrand.brand;
 
     if (usage.credits_used >= usage.credits_total) {
       return NextResponse.json(
