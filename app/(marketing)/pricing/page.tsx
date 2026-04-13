@@ -5,29 +5,29 @@ const plans = [
     name: "Free",
     price: "$0",
     suffix: "/mo",
-    subtitle: "Try Sellworks for free",
-    items: ["1 product kit", "Standard resolution", "Basic support"],
+    subtitle: "For solo testing",
+    items: ["1 brand workspace", "1 member", "100 monthly credits", "Basic copy and image generation"],
     cta: "Start Free",
     highlight: false,
     kind: "public",
   },
   {
-    name: "Starter",
-    price: "$19",
-    suffix: "/mo",
-    subtitle: "For small sellers",
-    items: ["10 product kits", "High resolution", "Priority support", "No watermarks"],
-    cta: "Get Started",
-    highlight: false,
-    kind: "public",
-  },
-  {
-    name: "Growth",
+    name: "Pro",
     price: "$49",
     suffix: "/mo",
-    subtitle: "Our most popular plan",
-    items: ["50 product kits", "4K resolution", "Dedicated account manager", "Custom branding"],
-    cta: "Get Growth",
+    subtitle: "For single-brand sellers",
+    items: ["1 brand workspace", "Up to 3 members", "1,500 monthly credits", "Copy, image, and video generation"],
+    cta: "Upgrade to Pro",
+    highlight: false,
+    kind: "upgrade",
+  },
+  {
+    name: "Team",
+    price: "$149",
+    suffix: "/mo",
+    subtitle: "Shared billing for multi-brand teams",
+    items: ["3 brand workspaces", "Up to 10 members", "6,000 shared monthly credits", "Shared credit pool across brands"],
+    cta: "Upgrade to Team",
     highlight: true,
     kind: "upgrade",
   },
@@ -106,7 +106,10 @@ export default function PricingPage() {
 
               <div className="mt-10">
                 {plan.kind === "upgrade" ? (
-                  <PricingAction />
+                  <PricingAction
+                    planKey={plan.name.toLowerCase() === "team" ? "team" : "pro"}
+                    label={plan.cta}
+                  />
                 ) : plan.kind === "contact" ? (
                   <a
                     href="mailto:hello@sellworks.ai"

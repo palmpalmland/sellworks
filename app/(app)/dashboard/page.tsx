@@ -15,6 +15,7 @@ import type { BrandRecord, ProjectRecord } from '@/lib/project-types'
 
 type UsageData = {
   plan?: string
+  plan_label?: string
   credits_total: number
   credits_used: number
   credits_remaining: number
@@ -114,6 +115,7 @@ export default function DashboardPage() {
         const brandQuery = activeBrandId ? `brandId=${encodeURIComponent(activeBrandId)}` : ''
         const projectsPath = brandQuery ? `/api/projects?limit=6&${brandQuery}` : '/api/projects?limit=6'
         const brandPath = brandQuery ? `/api/brand?${brandQuery}` : '/api/brand'
+        const usagePath = brandQuery ? `/api/usage?brandId=${encodeURIComponent(activeBrandId || '')}` : '/api/usage'
 
         const [brandJson, usageJson, projectsJson] = await Promise.all([
           fetch(brandPath, {
@@ -121,7 +123,11 @@ export default function DashboardPage() {
               Authorization: `Bearer ${session?.access_token}`,
             },
           }).then((res) => (res.ok ? res.json() : null)),
-          fetch(`/api/usage?userId=${currentUser.id}`).then((res) => res.json()),
+          fetch(usagePath, {
+            headers: {
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+          }).then((res) => res.json()),
           fetch(projectsPath, {
             headers: {
               Authorization: `Bearer ${session?.access_token}`,
@@ -189,7 +195,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Active Plan</div>
-              {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{usage?.plan || 'Free'}</div>}
+              {loading ? <MetricSkeleton /> : <div className="mt-3 text-4xl font-light">{usage?.plan_label || usage?.plan || 'Free'}</div>}
             </div>
             <div>
               <div className="text-[11px] uppercase tracking-[0.2em] text-white/70">Credits Left</div>

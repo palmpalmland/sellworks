@@ -6,7 +6,12 @@ import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import UpgradeButton from '@/components/UpgradeButton'
 
-export default function PricingAction() {
+type PricingActionProps = {
+  planKey?: 'pro' | 'team'
+  label?: string
+}
+
+export default function PricingAction({ planKey = 'pro', label }: PricingActionProps) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
@@ -19,7 +24,7 @@ export default function PricingAction() {
   }, [])
 
   if (user) {
-    return <UpgradeButton />
+    return <UpgradeButton planKey={planKey} label={label} />
   }
 
   return (

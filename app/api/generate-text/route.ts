@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { generateEcommerceCopy } from "@/lib/byteplus";
 import { supabase } from "@/lib/supabase";
-import { getUsage, incrementUsage, logUsage } from "@/lib/usage";
+import { consumeCredits, getBillingSummaryForUser } from "@/lib/billing";
+import { ensurePrimaryBrandForUser } from "@/lib/brand";
 
 export async function POST(req: Request) {
   try {
@@ -29,8 +30,7 @@ export async function POST(req: Request) {
     }
 
     const userId = user.id;
-
-    const { title, description, platform } = await req.json();
+    const { title, description, platform, brandId } = await req.json();
 
     if (!title || !description || !platform) {
       return NextResponse.json(
@@ -39,8 +39,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 调用 AI 之前先检查额度
-    const usage = await getUsage(userId);
+    const fallbackBrand = await ensurePrimaryBrandForUser(user);
+    const scopedBrandId = brandId?.toString().trim() || fallbackBrand.brand.id;
+    const usage = await getBillingSummaryForUser({
+      user,
+      brandId: scopedBrandId,
+    });
 
     if (usage.credits_used >= usage.credits_total) {
       return NextResponse.json(
@@ -49,18 +53,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // 调用 AI
     const result = await generateEcommerceCopy({
       title,
       description,
       platform,
     });
 
-    // AI 返回之后再扣额度 + 记录
-    await incrementUsage(userId, 1); // 文本=1 credit
-    await logUsage(userId, "text", 1);
+    await consumeCredits({
+      user,
+      brandId: scopedBrandId,
+      credits: 1,
+      type: "text",
+    });
 
-    // 保存生成记录
     const { error: insertError } = await supabase.from("generations").insert([
       {
         user_id: userId,
@@ -79,11 +84,11 @@ export async function POST(req: Request) {
       success: true,
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("generate-text error:", error);
 
     return NextResponse.json(
-      { error: error?.message || "Failed to generate content" },
+      { error: error instanceof Error ? error.message : "Failed to generate content" },
       { status: 500 }
     );
   }

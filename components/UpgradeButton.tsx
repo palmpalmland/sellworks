@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { getStoredActiveBrandId } from "@/lib/brand-session";
 
-export default function UpgradeButton() {
+type UpgradeButtonProps = {
+  planKey?: "pro" | "team";
+  label?: string;
+};
+
+export default function UpgradeButton({
+  planKey = "pro",
+  label,
+}: UpgradeButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleUpgrade() {
@@ -27,6 +36,10 @@ export default function UpgradeButton() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({
+          planKey,
+          brandId: getStoredActiveBrandId(),
+        }),
       });
 
       const data = await res.json();
@@ -57,7 +70,7 @@ export default function UpgradeButton() {
       disabled={loading}
       className="cta-primary w-full px-6 py-4 text-sm uppercase tracking-[0.18em] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {loading ? "Redirecting..." : "Upgrade to Pro"}
+      {loading ? "Redirecting..." : label || `Upgrade to ${planKey === "team" ? "Team" : "Pro"}`}
     </button>
   );
 }

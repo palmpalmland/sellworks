@@ -4,12 +4,19 @@ import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import UpgradeButton from '@/components/UpgradeButton'
+import { BRAND_CHANGED_EVENT, getStoredActiveBrandId } from '@/lib/brand-session'
 
 type UsageData = {
   plan?: string
+  plan_label?: string
+  billing_scope?: string
+  shared_credit_pool?: boolean
   credits_total: number
   credits_used: number
   credits_remaining: number
+  brands_included?: number
+  brands_connected?: number
+  members_included?: number
 }
 
 export default function BillingPage() {
@@ -22,8 +29,18 @@ export default function BillingPage() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
 
   useEffect(() => {
+    setActiveBrandId(getStoredActiveBrandId())
+
+    const handleBrandChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{ brandId?: string }>
+      setActiveBrandId(customEvent.detail?.brandId || getStoredActiveBrandId())
+    }
+
+    window.addEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+
     const load = async () => {
       const { data } = await supabase.auth.getUser()
       const currentUser = data.user
@@ -32,7 +49,18 @@ export default function BillingPage() {
 
       if (!currentUser) return
 
-      const res = await fetch(`/api/usage?userId=${currentUser.id}`)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const query = activeBrandId
+        ? `/api/usage?brandId=${encodeURIComponent(activeBrandId)}`
+        : '/api/usage'
+      const res = await fetch(query, {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      })
       const json = await res.json()
 
       if (json?.data) {
@@ -41,7 +69,11 @@ export default function BillingPage() {
     }
 
     load()
-  }, [])
+
+    return () => {
+      window.removeEventListener(BRAND_CHANGED_EVENT, handleBrandChanged as EventListener)
+    }
+  }, [activeBrandId])
 
   const handleSaveProfile = async () => {
     setSavingProfile(true)
@@ -113,7 +145,7 @@ export default function BillingPage() {
             <div>
               <div className="text-2xl font-bold text-white">Current subscription</div>
               <div className="mt-2 text-sm text-white/52">
-                {usage?.plan || 'Free'} plan
+                {(usage?.plan_label || usage?.plan || 'Free')} plan
               </div>
             </div>
             <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-white/58">
@@ -133,6 +165,23 @@ export default function BillingPage() {
             <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
               <div className="text-xs uppercase tracking-[0.18em] text-white/36">Credits left</div>
               <div className="mt-3 text-3xl font-bold text-white">{usage?.credits_remaining ?? 0}</div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Billing scope</div>
+              <div className="mt-3 text-lg font-semibold text-white">
+                {usage?.billing_scope === 'organization' ? 'Shared workspace pool' : 'Single brand'}
+              </div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Brands included</div>
+              <div className="mt-3 text-lg font-semibold text-white">{usage?.brands_included ?? 1}</div>
+            </div>
+            <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-white/36">Members included</div>
+              <div className="mt-3 text-lg font-semibold text-white">{usage?.members_included ?? 1}</div>
             </div>
           </div>
 

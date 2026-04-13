@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getBillingPlanDefinition } from "@/lib/billing-plans";
 
 export async function POST(req: Request) {
   try {
@@ -9,11 +10,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
+    const freePlan = getBillingPlanDefinition("free");
+
     const { error } = await supabase
       .from("usage_limits")
       .insert({
         user_id: userId,
-        credits_total: 20,
+        credits_total: freePlan.creditsIncluded,
         credits_used: 0,
       });
 

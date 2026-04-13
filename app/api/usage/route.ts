@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
+import { getBillingSummaryForUser } from "@/lib/billing";
+import { getBillingPlanDefinition } from "@/lib/billing-plans";
+import { getUserFromBearerRequest } from "@/lib/server-auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
+    const brandId = searchParams.get("brandId");
+    const { user } = await getUserFromBearerRequest(req);
+
+    if (user) {
+      const summary = await getBillingSummaryForUser({
+        user,
+        brandId,
+      });
+
+      return NextResponse.json({
+        data: summary,
+      });
+    }
 
     if (!userId) {
       return NextResponse.json(
@@ -53,7 +69,7 @@ export async function GET(req: Request) {
       .from("usage_limits")
       .insert({
         user_id: userId,
-        credits_total: 20,
+        credits_total: getBillingPlanDefinition(profile?.plan || "free").creditsIncluded,
         credits_used: 0,
       })
       .select()

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createClient } from "@supabase/supabase-js";
+import { ensureBillingAccountForBrand } from "@/lib/billing";
+import { ensurePrimaryBrandForUser, getBrandForUser } from "@/lib/brand";
+import { getBillingPlanDefinition, type BillingPlanKey } from "@/lib/billing-plans";
 
 export async function POST(req: Request) {
   try {
@@ -27,6 +30,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid user" }, { status: 401 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const planKey = (body.planKey?.toString().trim().toLowerCase() || "pro") as BillingPlanKey;
+    const requestedBrandId = body.brandId?.toString().trim() || null;
+    const plan = getBillingPlanDefinition(planKey);
+
+    if (!plan.stripePriceEnvKey) {
+      return NextResponse.json({ error: "This plan does not require checkout." }, { status: 400 });
+    }
+
+    const scopedBrand =
+      requestedBrandId
+        ? await getBrandForUser({ brandId: requestedBrandId, userId: user.id })
+        : await ensurePrimaryBrandForUser(user);
+
+    if (!scopedBrand) {
+      return NextResponse.json({ error: "Brand workspace not found" }, { status: 404 });
+    }
+
+    const billingContext = await ensureBillingAccountForBrand({
+      user,
+      brand: scopedBrand.brand,
+    });
+
+    if (!billingContext && planKey === "team") {
+      return NextResponse.json(
+        { error: "Team billing needs the new billing framework. Run the latest billing migration first." },
+        { status: 409 }
+      );
+    }
+
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("stripe_customer_id, email")
@@ -44,6 +77,8 @@ export async function POST(req: Request) {
         email: user.email || profile?.email || undefined,
         metadata: {
           supabase_user_id: user.id,
+          brand_id: scopedBrand.brand.id,
+          billing_account_id: billingContext?.account.id || "",
         },
       });
 
@@ -53,6 +88,13 @@ export async function POST(req: Request) {
         .from("profiles")
         .update({ stripe_customer_id: stripeCustomerId })
         .eq("id", user.id);
+
+      if (billingContext) {
+        await supabaseAdmin
+          .from("billing_accounts")
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq("id", billingContext.account.id);
+      }
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -60,7 +102,7 @@ export async function POST(req: Request) {
       customer: stripeCustomerId,
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_PRO_MONTHLY!,
+          price: process.env[plan.stripePriceEnvKey]!,
           quantity: 1,
         },
       ],
@@ -68,6 +110,9 @@ export async function POST(req: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing?canceled=1`,
       metadata: {
         user_id: user.id,
+        brand_id: scopedBrand.brand.id,
+        billing_account_id: billingContext?.account.id || "",
+        plan_key: plan.key,
       },
     });
 

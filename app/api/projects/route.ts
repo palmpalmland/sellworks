@@ -13,7 +13,7 @@ import {
   type UploadedProjectAsset,
 } from "@/lib/project-storage";
 import { createSeedanceTask } from "@/lib/seedance";
-import { getUsage, incrementUsage, logUsage } from "@/lib/usage";
+import { consumeCredits, getBillingSummaryForUser } from "@/lib/billing";
 import { assertBrandAccess, ensurePrimaryBrandForUser } from "@/lib/brand";
 
 type PersistedGeneratedImage = {
@@ -231,7 +231,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const usage = await getUsage(user.id);
     const fallbackBrand = await ensurePrimaryBrandForUser(user);
     const requestedBrandId = body.brandId?.toString().trim() || null;
     const brand =
@@ -246,6 +245,11 @@ export async function POST(req: Request) {
             return { id: requestedBrandId };
           })()
         : fallbackBrand.brand;
+
+    const usage = await getBillingSummaryForUser({
+      user,
+      brandId: brand.id,
+    });
 
     if (usage.credits_used >= usage.credits_total) {
       return NextResponse.json(
@@ -505,8 +509,12 @@ export async function POST(req: Request) {
 
     await supabaseAdmin.from("projects").update({ status: projectStatus }).eq("id", project.id);
 
-    await incrementUsage(user.id, 1);
-    await logUsage(user.id, "project_copy", 1);
+    await consumeCredits({
+      user,
+      brandId: brand.id,
+      credits: 1,
+      type: "project_copy",
+    });
 
     return NextResponse.json({
       success: true,
