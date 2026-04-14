@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromBearerRequest } from "@/lib/server-auth";
-import { PROJECT_ASSETS_BUCKET } from "@/lib/project-storage";
+import {
+  PROJECT_ASSETS_BUCKET,
+  type UploadedProjectAsset,
+} from "@/lib/project-storage";
 import { fetchSeedanceTask } from "@/lib/seedance";
 import { assertBrandAccess } from "@/lib/brand";
 
@@ -323,6 +326,11 @@ export async function PATCH(
     const body = await req.json().catch(() => null);
 
     const updates: Record<string, string | null> = {};
+    const uploadedAssets = Array.isArray(body?.uploadedAssets)
+      ? (body.uploadedAssets as UploadedProjectAsset[]).filter(
+          (asset) => asset?.assetType && asset?.storagePath
+        )
+      : [];
 
     if (typeof body?.product_name === "string") {
       const nextName = body.product_name.trim();
@@ -344,25 +352,55 @@ export async function PATCH(
       updates.selling_points = body.selling_points.trim();
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && uploadedAssets.length === 0) {
       return NextResponse.json(
-        { error: "No editable project fields were provided." },
+        { error: "No editable project changes were provided." },
         { status: 400 }
       );
     }
 
-    const { data: updatedProject, error: updateError } = await supabaseAdmin
-      .from("projects")
-      .update(updates)
-      .eq("id", projectId)
-      .select("*")
-      .single();
+    let updatedProject = projectResult.project;
 
-    if (updateError || !updatedProject) {
-      return NextResponse.json(
-        { error: updateError?.message || "Failed to update project" },
-        { status: 500 }
-      );
+    if (Object.keys(updates).length > 0) {
+      const { data, error: updateError } = await supabaseAdmin
+        .from("projects")
+        .update(updates)
+        .eq("id", projectId)
+        .select("*")
+        .single();
+
+      if (updateError || !data) {
+        return NextResponse.json(
+          { error: updateError?.message || "Failed to update project" },
+          { status: 500 }
+        );
+      }
+
+      updatedProject = data;
+    }
+
+    if (uploadedAssets.length > 0) {
+      const assetRows = uploadedAssets.map((asset) => ({
+        project_id: projectId,
+        asset_type: asset.assetType,
+        file_name: asset.fileName,
+        mime_type: asset.mimeType,
+        file_size: asset.fileSize,
+        source_url: null,
+        storage_path: asset.storagePath,
+        status: "uploaded",
+      }));
+
+      const { error: assetInsertError } = await supabaseAdmin
+        .from("project_assets")
+        .insert(assetRows);
+
+      if (assetInsertError) {
+        return NextResponse.json(
+          { error: assetInsertError.message || "Failed to attach project assets" },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({ data: updatedProject });

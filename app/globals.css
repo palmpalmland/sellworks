@@ -59,7 +59,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
-  background-image: linear-gradient(180deg, #060608 0%, #060608 100%);
+  background-image: linear-gradient(180deg, var(--background) 0%, var(--background) 100%);
   background-attachment: fixed;
   overflow-x: hidden;
 }
@@ -80,6 +80,46 @@ a {
 
 .app-theme-bg {
   background: var(--background);
+}
+
+.marketing-dark {
+  --background: #060608;
+  --foreground: #f5f7ff;
+  --muted: #8a8a9e;
+  --panel: rgba(13, 13, 18, 0.92);
+  --panel-strong: rgba(13, 13, 18, 0.96);
+  --border: #1a1a24;
+  --header-bg: rgba(9, 10, 15, 0.92);
+  --sidebar-bg: #08090d;
+  --menu-bg: #111217;
+  --menu-bg-2: #0c0d12;
+  --menu-item-bg: rgba(255, 255, 255, 0.04);
+  --menu-item-hover: rgba(255, 255, 255, 0.07);
+  --app-grid-line: rgba(255, 255, 255, 0.035);
+  --selection-bg: rgba(109, 124, 255, 0.28);
+  --selection-fg: white;
+  background: #060608;
+  color: #f5f7ff;
+}
+
+.marketing-light {
+  --background: #f5f7fb;
+  --foreground: #111827;
+  --muted: #697386;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: rgba(255, 255, 255, 0.96);
+  --border: rgba(15, 23, 42, 0.1);
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --sidebar-bg: #ffffff;
+  --menu-bg: #ffffff;
+  --menu-bg-2: #ffffff;
+  --menu-item-bg: rgba(15, 23, 42, 0.04);
+  --menu-item-hover: rgba(15, 23, 42, 0.08);
+  --app-grid-line: rgba(15, 23, 42, 0.045);
+  --selection-bg: rgba(109, 124, 255, 0.16);
+  --selection-fg: #111827;
+  background: #f5f7fb;
+  color: #111827;
 }
 
 .app-shell::before {

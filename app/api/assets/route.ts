@@ -162,17 +162,19 @@ export async function GET(req: Request) {
             }>)
           : [];
 
-        return tasks.map((task, index) => ({
-          id: `${output.id}-${index}`,
-          projectId: project.id,
-          projectName: project.product_name,
-          platform: project.platform,
-          kind: "Video",
-          title: task.title || `Video ${index + 1}`,
-          preview: task.prompt || "Generated video asset",
-          createdAt: output.created_at,
-          thumbnail: task.resultUrl || undefined,
-        }));
+        return tasks
+          .filter((task) => Boolean(task.resultUrl))
+          .map((task, index) => ({
+            id: `${output.id}-${index}`,
+            projectId: project.id,
+            projectName: project.product_name,
+            platform: project.platform,
+            kind: "Video",
+            title: task.title || `Video ${index + 1}`,
+            preview: task.prompt || "Generated video asset",
+            createdAt: output.created_at,
+            thumbnail: task.resultUrl || undefined,
+          }));
       }
 
       return [];

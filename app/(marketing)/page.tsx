@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import MarketingLoadingOverlay from "@/components/MarketingLoadingOverlay";
 import Reveal from "@/components/Reveal";
 import { marketingDemo } from "@/lib/demo-content";
+import { useMarketingAuth } from "@/components/MarketingAuth";
 
 function LinkIcon() {
   return (
@@ -206,6 +207,7 @@ export default function HomePage() {
   const [demoInput, setDemoInput] = useState("");
   const [demoState, setDemoState] = useState<"idle" | "loading" | "results">("idle");
   const resultsRef = useRef<HTMLElement | null>(null);
+  const { openAuth } = useMarketingAuth();
 
   const runDemo = useCallback((nextValue?: string) => {
     if (nextValue) {
@@ -222,7 +224,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="bg-background selection:bg-[#6C5CE7]/30">
+    <div className="selection:bg-[#6C5CE7]/20">
       <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-6 py-28 md:py-32">
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute left-[-10%] top-[-10%] h-[600px] w-[600px] rounded-full bg-[#6C5CE7]/7 blur-[120px]" />
@@ -231,35 +233,35 @@ export default function HomePage() {
         </div>
 
         <Reveal className="mx-auto max-w-5xl text-center" variant="fade-up">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm font-medium backdrop-blur-md">
+          <div className="theme-surface mb-8 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium backdrop-blur-md">
             <span className="flex h-2 w-2 rounded-full bg-[#6C5CE7]" />
-            <span className="text-white/80">New: TikTok Shop Integration Live</span>
+            <span className="theme-text-muted">New: TikTok Shop Integration Live</span>
           </div>
 
-          <h1 className="headline text-5xl font-black leading-[1.05] tracking-tight text-white sm:text-7xl lg:text-8xl">
+          <h1 className="headline theme-text text-5xl font-black leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
             Turn any product into{" "}
             <span className="gradient-text-spotlight">revenue.</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-2xl font-semibold leading-relaxed text-white sm:text-3xl">
+          <p className="theme-text mx-auto mt-6 max-w-2xl text-2xl font-semibold leading-relaxed sm:text-3xl">
             No skills needed.{" "}
             <span className="gradient-text">Sell like a pro.</span>
           </p>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/60 sm:text-xl">
+          <p className="theme-text-muted mx-auto mt-6 max-w-2xl text-lg leading-relaxed sm:text-xl">
             Sellworks analyzes your product and generates everything you need to sell:
             Amazon-ready images, TikTok ads, and conversion-optimized copy.
           </p>
 
           <Reveal className="mx-auto mt-16 w-full max-w-3xl" variant="pop-in" delayMs={180}>
-            <div className="panel-strong group relative flex flex-col gap-4 rounded-[2rem] p-5 transition-all duration-500 hover:border-white/10 hover:shadow-[0_0_50px_rgba(108,92,231,0.12)] sm:flex-row sm:items-center">
+            <div className="panel-strong group relative flex flex-col gap-4 rounded-[2rem] p-5 transition-all duration-500 hover:border-[color:var(--border)] hover:shadow-[0_0_50px_rgba(108,92,231,0.08)] sm:flex-row sm:items-center">
               <div className="relative flex-1">
-                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-white/34">
+                <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center theme-text-muted">
                   <LinkIcon />
                 </div>
                 <input
                   placeholder={marketingDemo.inputPlaceholder}
-                  className="h-16 w-full rounded-2xl bg-black/40 pl-14 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]/30"
+                  className="field h-16 rounded-2xl pl-14 pr-4"
                   type="text"
                   value={demoInput}
                   onChange={(event) => setDemoInput(event.target.value)}
@@ -267,14 +269,14 @@ export default function HomePage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex h-16 items-center gap-2 rounded-2xl border border-white/5 bg-white/5 px-6 font-semibold text-white">
+                <div className="theme-surface theme-text flex h-16 items-center gap-2 rounded-2xl border px-6 font-semibold">
                   <ImageIcon />
                   <span className="hidden sm:inline">Upload</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => runDemo(demoInput || marketingDemo.exampleUrl)}
-                  className="flex h-16 items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] px-10 font-bold text-white"
+                  className="flex h-16 items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] px-10 font-bold text-white shadow-[0_12px_30px_rgba(108,92,231,0.14)]"
                 >
                   <span>Generate</span>
                 </button>
@@ -282,7 +284,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-3">
-              <span className="text-sm text-white/42">No link?</span>
+              <span className="theme-text-muted text-sm">No link?</span>
               <button
                 type="button"
                 onClick={() => runDemo(marketingDemo.exampleUrl)}
@@ -292,7 +294,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div className="mt-10 flex items-center justify-center gap-8 text-sm font-bold uppercase tracking-[0.2em] text-white/28">
+            <div className="theme-text-muted mt-10 flex items-center justify-center gap-8 text-sm font-bold uppercase tracking-[0.2em]">
               <span>Amazon</span>
               <span>Shopify</span>
               <span>TikTok Shop</span>
@@ -308,12 +310,12 @@ export default function HomePage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
               The Sellworks Advantage
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+            <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
               From one product link to a
               <br />
               <span className="gradient-text">full content kit</span>
             </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/58">
+            <p className="theme-text-muted mx-auto mt-6 max-w-2xl text-lg leading-relaxed">
               Most tools generate one asset at a time. Sellworks analyzes your product and
               generates your entire marketing system in seconds.
             </p>
@@ -323,15 +325,15 @@ export default function HomePage() {
             {features.map((item, index) => (
               <Reveal
                 key={item.title}
-                className="panel group rounded-[2rem] p-8 transition-all duration-500 hover:bg-white/[0.03] hover:border-white/10"
+                className="panel group rounded-[2rem] p-8 transition-all duration-500 hover:bg-[color:var(--menu-item-bg)] hover:border-[color:var(--border)]"
                 variant="pop-in"
                 delayMs={100 + index * 90}
               >
-                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/5 bg-white/5 transition-all duration-500 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
+                <div className="theme-surface mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border transition-all duration-500 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
                   <div className={item.accent}>{item.icon}</div>
                 </div>
-                <h3 className="headline text-xl font-black tracking-tight text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-white/55 transition-colors group-hover:text-white/72">
+                <h3 className="headline theme-text text-xl font-black tracking-tight">{item.title}</h3>
+                <p className="theme-text-muted mt-3 text-sm leading-relaxed transition-colors group-hover:text-[color:var(--foreground)]">
                   {item.description}
                 </p>
               </Reveal>
@@ -349,10 +351,10 @@ export default function HomePage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                   {marketingDemo.resultLabel}
                 </div>
-                <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+                <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
                   {marketingDemo.resultTitle}
                 </h2>
-                <p className="mt-4 text-lg text-white/56">
+                <p className="theme-text-muted mt-4 text-lg">
                   {marketingDemo.resultSubtitle}
                 </p>
               </div>
@@ -360,9 +362,9 @@ export default function HomePage() {
               <div className="grid gap-10">
                 <Reveal className="panel-strong overflow-hidden rounded-[2rem]" variant="pop-in">
                   <div className="grid gap-10 p-8 lg:grid-cols-[0.92fr_1.08fr]">
-                    <div className="mx-auto w-full max-w-[340px] rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(108,92,231,0.2),rgba(0,0,0,0.6))] p-5 shadow-2xl">
-                      <div className="flex h-full min-h-[610px] flex-col justify-between overflow-hidden rounded-[28px] bg-black/10">
-                        <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border border-white/8">
+                    <div className="mx-auto w-full max-w-[340px] rounded-[32px] border border-[color:var(--border)] bg-[linear-gradient(180deg,rgba(108,92,231,0.12),rgba(255,255,255,0.45))] p-5 shadow-xl">
+                      <div className="flex h-full min-h-[610px] flex-col justify-between overflow-hidden rounded-[28px] bg-white/35">
+                        <div className="relative aspect-[9/16] overflow-hidden rounded-[28px] border border-[color:var(--border)]">
                           <img
                             src={marketingDemo.video.poster}
                             alt="Sellworks demo video poster"
@@ -372,20 +374,20 @@ export default function HomePage() {
                             <span className="rounded-full bg-[#6C5CE7] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
                               {marketingDemo.video.badge}
                             </span>
-                            <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                            <span className="rounded-full border border-[color:var(--border)] bg-white/70 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] theme-text">
                               {marketingDemo.video.format}
                             </span>
                           </div>
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md">
-                              <div className="ml-1 h-0 w-0 border-y-[14px] border-l-[22px] border-y-transparent border-l-white" />
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/50 bg-white/60 backdrop-blur-md">
+                              <div className="ml-1 h-0 w-0 border-y-[14px] border-l-[22px] border-y-transparent border-l-[#111827]" />
                             </div>
                           </div>
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/75 to-transparent p-6">
-                            <h4 className="text-sm font-bold leading-relaxed text-white">
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/80 to-transparent p-6">
+                            <h4 className="theme-text text-sm font-bold leading-relaxed">
                               {marketingDemo.video.headline}
                             </h4>
-                            <div className="mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/74">
+                            <div className="theme-text-muted mt-6 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em]">
                               <ZapIcon />
                               <span>High-Res Export Locked</span>
                             </div>
@@ -397,29 +399,29 @@ export default function HomePage() {
                     <div className="grid gap-8 lg:grid-cols-2">
                       <Reveal className="panel rounded-[2rem] p-8" variant="slide-left" delayMs={220}>
                         <div className="mb-6 flex items-center justify-between">
-                          <h3 className="headline text-xl font-black text-white">Product Copy</h3>
-                          <div className="rounded-xl border border-white/8 bg-white/5 px-4 py-2 text-sm font-medium text-white">
+                          <h3 className="headline theme-text text-xl font-black">Product Copy</h3>
+                          <div className="theme-surface theme-text rounded-xl border px-4 py-2 text-sm font-medium">
                             Copy All
                           </div>
                         </div>
                         <div className="space-y-6">
                           <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Product Title</label>
-                            <p className="text-lg font-semibold leading-tight text-white">
+                            <label className="theme-text-muted mb-2 block text-xs font-bold uppercase tracking-[0.18em]">Product Title</label>
+                            <p className="theme-text text-lg font-semibold leading-tight">
                               {marketingDemo.copy.title}
                             </p>
                           </div>
                           <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Key Features</label>
-                            <ul className="space-y-2 text-sm text-white/82">
+                            <label className="theme-text-muted mb-2 block text-xs font-bold uppercase tracking-[0.18em]">Key Features</label>
+                            <ul className="theme-text space-y-2 text-sm">
                               {marketingDemo.copy.bullets.map((bullet) => (
                                 <li key={bullet}>{bullet}</li>
                               ))}
                             </ul>
                           </div>
                           <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-white/36">Description</label>
-                            <p className="text-sm leading-7 text-white/72">
+                            <label className="theme-text-muted mb-2 block text-xs font-bold uppercase tracking-[0.18em]">Description</label>
+                            <p className="theme-text-muted text-sm leading-7">
                               {marketingDemo.copy.description}
                             </p>
                           </div>
@@ -427,16 +429,16 @@ export default function HomePage() {
                       </Reveal>
 
                       <Reveal className="panel rounded-[2rem] p-8" variant="slide-right" delayMs={320}>
-                        <div className="mb-6 text-xs font-black uppercase tracking-[0.18em] text-white/36">
+                        <div className="theme-text-muted mb-6 text-xs font-black uppercase tracking-[0.18em]">
                           Generated Assets
                         </div>
                         <div className="space-y-4">
                           {marketingDemo.generatedAssets.map((asset) => (
-                            <div key={asset.title} className="rounded-[1.4rem] border border-white/8 bg-white/5 p-5">
+                            <div key={asset.title} className="theme-surface rounded-[1.4rem] border p-5">
                               <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
                                 {asset.label}
                               </div>
-                              <div className="mt-2 text-lg font-bold text-white">{asset.title}</div>
+                              <div className="theme-text mt-2 text-lg font-bold">{asset.title}</div>
                             </div>
                           ))}
                         </div>
@@ -444,16 +446,16 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-4 border-t border-white/5 bg-white/[0.02] p-8 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="theme-surface flex flex-col gap-4 border-t p-8 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-black">
+                      <div className="rounded-2xl bg-[#111827] px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">
                         Download
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-black uppercase tracking-[0.18em] text-white">
+                      <div className="theme-text rounded-2xl border border-[color:var(--border)] bg-white/60 px-6 py-3 text-sm font-black uppercase tracking-[0.18em]">
                         Remix
                       </div>
                     </div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
+                    <div className="theme-text-muted text-[10px] font-black uppercase tracking-[0.2em]">
                       {marketingDemo.video.note}
                     </div>
                   </div>
@@ -467,7 +469,7 @@ export default function HomePage() {
                       variant="pop-in"
                       delayMs={180 + index * 100}
                     >
-                      <div className="aspect-square overflow-hidden border-b border-white/6 bg-black/20">
+                      <div className="aspect-square overflow-hidden border-b border-[color:var(--border)] bg-white/30">
                         <img
                           src={image.src}
                           alt={image.title}
@@ -478,7 +480,7 @@ export default function HomePage() {
                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
                           {image.label}
                         </div>
-                        <div className="mt-2 text-xl font-black tracking-tight text-white">
+                        <div className="theme-text mt-2 text-xl font-black tracking-tight">
                           {image.title}
                         </div>
                       </div>
@@ -490,20 +492,20 @@ export default function HomePage() {
           ) : (
             <>
               <div className="mb-16 text-center">
-                <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+                <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
                   See Sellworks in action
                 </h2>
-                <p className="mt-6 text-lg text-white/56">
+                <p className="theme-text-muted mt-6 text-lg">
                   Paste a link above to see the magic happen.
                 </p>
               </div>
               <Reveal
-                className="panel group relative flex aspect-video items-center justify-center overflow-hidden rounded-[2rem] border-dashed border-white/10 bg-white/[0.02] transition-all duration-500 hover:border-white/20"
+                className="panel group relative flex aspect-video items-center justify-center overflow-hidden rounded-[2rem] border-dashed border-[color:var(--border)] bg-white/30 transition-all duration-500 hover:border-[color:var(--muted)]"
                 variant="pop-in"
                 delayMs={120}
               >
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(108,92,231,0.05)_0%,transparent_70%)]" />
-                <div className="relative flex flex-col items-center gap-4 text-white/38 transition-colors group-hover:text-white/60">
+                <div className="theme-text-muted relative flex flex-col items-center gap-4 transition-colors group-hover:text-[color:var(--foreground)]">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-current animate-[spin_10s_linear_infinite]">
                     <ZapIcon />
                   </div>
@@ -517,13 +519,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white/[0.01] py-28">
+      <section className="py-28">
         <div className="page-shell">
           <div className="mb-16 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
               The Output
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+            <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
               Everything you need to
               <br />
               <span className="gradient-text">launch and scale</span>
@@ -541,8 +543,8 @@ export default function HomePage() {
                 <div className={`mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-[24px] border ${item.accent} transition duration-500 group-hover:scale-110`}>
                   {item.icon}
                 </div>
-                <h3 className="headline text-2xl font-black tracking-tight text-white">{item.title}</h3>
-                <p className="mx-auto mt-4 max-w-sm text-lg leading-relaxed text-white/56">
+                <h3 className="headline theme-text text-2xl font-black tracking-tight">{item.title}</h3>
+                <p className="theme-text-muted mx-auto mt-4 max-w-sm text-lg leading-relaxed">
                   {item.description}
                 </p>
               </Reveal>
@@ -557,7 +559,7 @@ export default function HomePage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
               Why Choose Sellworks
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+            <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
               Built for sellers
               <br />
               <span className="gradient-text">who want results</span>
@@ -568,16 +570,16 @@ export default function HomePage() {
             {reasons.map((item, index) => (
               <Reveal
                 key={item.title}
-                className="panel group flex flex-col gap-6 rounded-[2rem] p-10 transition hover:bg-white/[0.03] hover:border-white/10"
+                className="panel group flex flex-col gap-6 rounded-[2rem] p-10 transition hover:bg-[color:var(--menu-item-bg)] hover:border-[color:var(--border)]"
                 variant="pop-in"
                 delayMs={100 + index * 90}
               >
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-[#6C5CE7] transition group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
+                <div className="theme-surface flex h-16 w-16 items-center justify-center rounded-2xl border text-[#6C5CE7] transition group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
                   {item.icon}
                 </div>
                 <div>
-                  <h3 className="headline text-2xl font-black tracking-tight text-white">{item.title}</h3>
-                  <p className="mt-3 text-lg leading-relaxed text-white/56">{item.description}</p>
+                  <h3 className="headline theme-text text-2xl font-black tracking-tight">{item.title}</h3>
+                  <p className="theme-text-muted mt-3 text-lg leading-relaxed">{item.description}</p>
                 </div>
               </Reveal>
             ))}
@@ -591,30 +593,30 @@ export default function HomePage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
               The Competitive Edge
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+            <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
               Why Sellworks beats
               <br />
               <span className="gradient-text-spotlight">traditional AI tools</span>
             </h2>
-            <p className="mx-auto mt-8 max-w-3xl text-center text-2xl italic leading-relaxed text-white/54">
+            <p className="theme-text-muted mx-auto mt-8 max-w-3xl text-center text-2xl italic leading-relaxed">
               "Most tools create content. Sellworks creates conversion systems."
             </p>
           </div>
 
-          <Reveal className="panel overflow-hidden rounded-[2rem] border-white/10" variant="pop-in" delayMs={120}>
+          <Reveal className="panel overflow-hidden rounded-[2rem] border-[color:var(--border)]" variant="pop-in" delayMs={120}>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/[0.02]">
-                    <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/50">Feature</th>
+                  <tr className="theme-subtle border-b border-[color:var(--border)]">
+                    <th className="theme-text-muted px-8 py-6 text-xs font-black uppercase tracking-[0.2em]">Feature</th>
                     <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-[#6C5CE7]">Sellworks</th>
-                    <th className="px-8 py-6 text-xs font-black uppercase tracking-[0.2em] text-white/35">Others</th>
+                    <th className="theme-text-muted px-8 py-6 text-xs font-black uppercase tracking-[0.2em]">Others</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-[color:var(--border)]">
                   {comparisonRows.map((row) => (
-                    <tr key={row.label} className="group transition-colors hover:bg-white/[0.01]">
-                      <td className="px-8 py-6 font-bold tracking-tight text-white">{row.label}</td>
+                    <tr key={row.label} className="group transition-colors hover:bg-[color:var(--menu-item-bg)]">
+                      <td className="theme-text px-8 py-6 font-bold tracking-tight">{row.label}</td>
                       <td className="px-8 py-6">
                         {row.sellworks ? (
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00D4FF]/10 text-[#00D4FF]">
@@ -650,7 +652,7 @@ export default function HomePage() {
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#00D4FF]/20 bg-[#00D4FF]/10 px-4 py-1 text-sm font-bold text-[#00D4FF]">
               The Process
             </div>
-            <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">
+            <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">
               How <span className="gradient-text-spotlight">Sellworks</span> works
             </h2>
           </div>
@@ -668,12 +670,12 @@ export default function HomePage() {
                 ) : null}
                 <div className="group relative mb-10">
                   <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[#6C5CE7] to-[#00D4FF] opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-20" />
-                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-white/5 bg-white/5 text-4xl font-black text-[#6C5CE7] transition-all duration-500 group-hover:scale-110 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
+                  <div className="theme-surface relative flex h-24 w-24 items-center justify-center rounded-full border text-4xl font-black text-[#6C5CE7] transition-all duration-500 group-hover:scale-110 group-hover:border-[#6C5CE7]/30 group-hover:bg-[#6C5CE7]/10">
                     {step.number}
                   </div>
                 </div>
-                <h3 className="headline mb-4 text-2xl font-black tracking-tight text-white">{step.title}</h3>
-                <p className="mx-auto mt-6 max-w-sm text-lg leading-relaxed text-white/56">
+                <h3 className="headline theme-text mb-4 text-2xl font-black tracking-tight">{step.title}</h3>
+                <p className="theme-text-muted mx-auto mt-6 max-w-sm text-lg leading-relaxed">
                   {step.description}
                 </p>
               </Reveal>
@@ -689,8 +691,8 @@ export default function HomePage() {
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#6C5CE7]/20 bg-[#6C5CE7]/10 px-4 py-1 text-sm font-bold text-[#6C5CE7]">
               Community Gallery
               </div>
-              <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-6xl">Get Inspired</h2>
-              <p className="mt-4 text-lg text-white/56">See what others are creating with Sellworks.</p>
+              <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-6xl">Get Inspired</h2>
+              <p className="theme-text-muted mt-4 text-lg">See what others are creating with Sellworks.</p>
             </div>
             <Link
               href="/pricing"
@@ -711,7 +713,7 @@ export default function HomePage() {
                 variant="pop-in"
                 delayMs={80 + index * 100}
               >
-                <div className="aspect-square overflow-hidden bg-black/20">
+                <div className="aspect-square overflow-hidden bg-white/30">
                   <img
                     src={item.image}
                     alt={item.title}
@@ -723,8 +725,8 @@ export default function HomePage() {
                   <div className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#6C5CE7]">
                     {item.label}
                   </div>
-                  <h3 className="headline text-xl font-black tracking-tight text-white">{item.title}</h3>
-                  <div className="mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/42 transition-colors group-hover:text-white">
+                  <h3 className="headline theme-text text-xl font-black tracking-tight">{item.title}</h3>
+                  <div className="theme-text-muted mt-6 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] transition-colors group-hover:text-[color:var(--foreground)]">
                     <span>Simulate demo</span>
                     <span className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
                       <ArrowUpRightIcon />
@@ -739,31 +741,32 @@ export default function HomePage() {
 
       <section className="section-space">
         <div className="page-shell">
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-[linear-gradient(135deg,#6C5CE7_0%,#00D4FF_100%)] p-12 text-center sm:p-20">
+          <div className="panel-strong relative overflow-hidden rounded-[2.5rem] p-12 text-center sm:p-20">
             <div className="absolute left-0 top-0 h-full w-full opacity-20">
-              <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-white blur-3xl" />
-              <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-white blur-3xl" />
+              <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-[#6C5CE7]/30 blur-3xl" />
+              <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-[#00D4FF]/25 blur-3xl" />
             </div>
             <div className="relative z-10 mx-auto max-w-3xl">
-              <h2 className="headline text-4xl font-black tracking-tight text-white sm:text-7xl">
+              <h2 className="headline theme-text text-4xl font-black tracking-tight sm:text-7xl">
                 Ready to scale your ecommerce content?
               </h2>
-              <p className="mt-8 text-xl font-medium text-white/92 sm:text-2xl">
+              <p className="theme-text mt-8 text-xl font-medium sm:text-2xl">
                 Join 2,000+ brands using Sellworks to launch products 10x faster.
               </p>
               <div className="mt-12 flex flex-col items-center justify-center gap-6 sm:flex-row">
-                <Link
-                  href="/login"
+                <button
+                  type="button"
+                  onClick={openAuth}
                   className="w-full rounded-2xl bg-white px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] text-[#6C5CE7] sm:w-auto"
                   style={{ color: "#6C5CE7" }}
                 >
                   Start Free Trial
-                </Link>
-                <Link href="/pricing" className="w-full rounded-2xl border-2 border-white/30 px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] text-white backdrop-blur-sm sm:w-auto">
+                </button>
+                <Link href="/pricing" className="theme-text w-full rounded-2xl border-2 border-[color:var(--border)] px-10 py-5 text-center text-lg font-black uppercase tracking-[0.18em] backdrop-blur-sm sm:w-auto">
                   Book a Demo
                 </Link>
               </div>
-              <p className="mt-8 text-sm font-bold uppercase tracking-[0.18em] text-white/64">
+              <p className="theme-text-muted mt-8 text-sm font-bold uppercase tracking-[0.18em]">
                 No credit card required | 7-day free trial
               </p>
             </div>

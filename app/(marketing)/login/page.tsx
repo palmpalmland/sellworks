@@ -1,59 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import AuthForm from '@/components/AuthForm'
 
 export default function LoginPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [message, setMessage] = useState('')
-  const router = useRouter()
-
-  const getNextPath = () => {
-    if (typeof window === 'undefined') {
-      return '/dashboard'
-    }
-
-    return new URLSearchParams(window.location.search).get('next') || '/dashboard'
-  }
-
-  const handleSignUp = async () => {
-    const nextPath = getNextPath()
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: name.trim(),
-        },
-      },
-    })
-
-    if (error) {
-      setMessage(error.message)
-    } else if (data.session) {
-      router.push(nextPath)
-    } else {
-      setMessage('Check your email to confirm, then come back to finish joining the workspace.')
-    }
-  }
-
-  const handleSignIn = async () => {
-    const nextPath = getNextPath()
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      setMessage(error.message)
-    } else {
-      router.push(nextPath)
-    }
-  }
-
   return (
     <div className="section-space">
       <div className="page-shell grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
@@ -68,53 +17,7 @@ export default function LoginPage() {
           </p>
         </section>
 
-        <section className="panel rounded-[2.2rem] p-8 md:p-10">
-          <div className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300/76">
-            Account access
-          </div>
-          <div className="mt-3 headline text-3xl font-black text-white">
-            Start generating content kits
-          </div>
-
-          <div className="mt-8 space-y-4">
-            <input
-              type="text"
-              placeholder="Full name"
-              className="field"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <input
-              type="email"
-              placeholder="Email"
-              className="field"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              className="field"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <button onClick={handleSignIn} className="cta-primary w-full">
-              Sign In
-            </button>
-            <button onClick={handleSignUp} className="cta-secondary w-full">
-              Create Account
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-4 text-sm text-white/58">
-            {message || 'Use a real email if you want to test signup and confirmation flow.'}
-          </div>
-        </section>
+        <AuthForm />
       </div>
     </div>
   )

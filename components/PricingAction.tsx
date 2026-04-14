@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import UpgradeButton from '@/components/UpgradeButton'
+import { useMarketingAuth } from '@/components/MarketingAuth'
 
 type PricingActionProps = {
   planKey?: 'pro' | 'team'
@@ -13,6 +14,7 @@ type PricingActionProps = {
 
 export default function PricingAction({ planKey = 'pro', label }: PricingActionProps) {
   const [user, setUser] = useState<User | null>(null)
+  const { openAuth } = useMarketingAuth()
 
   useEffect(() => {
     const loadUser = async () => {
@@ -29,9 +31,9 @@ export default function PricingAction({ planKey = 'pro', label }: PricingActionP
 
   return (
     <div className="space-y-3">
-      <Link href="/login" className="cta-primary w-full px-6 py-4 text-sm uppercase tracking-[0.18em]">
+      <button type="button" onClick={openAuth} className="cta-primary w-full px-6 py-4 text-sm uppercase tracking-[0.18em]">
         Sign Up To Upgrade
-      </Link>
+      </button>
       <p className="text-center text-sm text-white/48">
         Pricing is public. Upgrades unlock after login.
       </p>

@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import SellworksLogo from '@/components/SellworksLogo'
+import { useMarketingAuth } from '@/components/MarketingAuth'
 
 export default function MarketingNav() {
   const [user, setUser] = useState<User | null>(null)
+  const { openAuth } = useMarketingAuth()
 
   useEffect(() => {
     const loadUser = async () => {
@@ -19,13 +21,13 @@ export default function MarketingNav() {
   }, [])
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-[100] w-full border-b border-white/5 bg-background/60 backdrop-blur-xl">
+    <nav className="fixed inset-x-0 top-0 z-[100] w-full border-b border-[var(--border)] bg-[color:var(--header-bg)]/90 backdrop-blur-xl">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 sm:px-8 lg:px-12">
         <Link href="/" className="group flex cursor-pointer items-center gap-3">
           <div className="transition-transform duration-500 group-hover:rotate-12">
             <SellworksLogo className="h-10 w-10" />
           </div>
-          <span className="text-2xl font-black tracking-tighter text-white">
+          <span className="text-2xl font-black tracking-tighter theme-text">
             Sellworks
           </span>
         </Link>
@@ -50,17 +52,18 @@ export default function MarketingNav() {
               Open Workspace
             </Link>
           ) : (
-            <Link
-              href="/login"
+            <button
+              type="button"
+              onClick={openAuth}
               className="rounded-2xl bg-white px-7 py-3 text-sm font-black uppercase tracking-widest text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:bg-white/90"
               style={{ color: '#0b1020' }}
             >
               Start Free
-            </Link>
+            </button>
           )}
         </div>
 
-        <button className="text-white/60 transition-colors hover:text-white md:hidden" aria-label="Open navigation">
+        <button className="theme-text-muted transition-colors hover:text-[color:var(--foreground)] md:hidden" aria-label="Open navigation">
           <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16m-7 6h7" />
           </svg>

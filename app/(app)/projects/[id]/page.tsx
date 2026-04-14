@@ -1,10 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { formatLoadError } from '@/lib/ui-errors'
+import {
+  buildProjectAssetPath,
+  PROJECT_ASSETS_BUCKET,
+  type UploadedProjectAsset,
+} from '@/lib/project-storage'
 import type {
   ProjectAssetRecord,
   ProjectOutputRecord,
@@ -23,8 +28,44 @@ type ProjectResponse = {
 const platformSections = ['Amazon', 'Shopify', 'Etsy', 'TikTok'] as const
 type PlatformSection = (typeof platformSections)[number]
 type ProjectSidebarSection = 'inputs' | 'outputs'
-type InputsTab = 'brief' | 'images' | 'videos'
 type OutputTab = 'copy' | 'images' | 'video'
+const MAX_PRODUCT_IMAGES = 8
+
+async function uploadProjectFiles(params: {
+  userId: string
+  files: File[]
+  assetType: 'product_image' | 'reference_video'
+}) {
+  const { userId, files, assetType } = params
+
+  return Promise.all(
+    files.map(async (file) => {
+      const storagePath = buildProjectAssetPath({
+        userId,
+        assetType,
+        fileName: file.name,
+      })
+
+      const { error } = await supabase.storage.from(PROJECT_ASSETS_BUCKET).upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type,
+      })
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return {
+        assetType,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        storagePath,
+      } satisfies UploadedProjectAsset
+    })
+  )
+}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>()
@@ -32,7 +73,6 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sidebarSection, setSidebarSection] = useState<ProjectSidebarSection>('inputs')
-  const [inputsTab, setInputsTab] = useState<InputsTab>('brief')
   const [openPlatform, setOpenPlatform] = useState<PlatformSection>('Amazon')
   const [activeOutputTab, setActiveOutputTab] = useState<OutputTab>('copy')
   const [briefDraft, setBriefDraft] = useState({
@@ -44,74 +84,96 @@ export default function ProjectDetailPage() {
     null | 'product_name' | 'product_url' | 'selling_points'
   >(null)
   const [saveMessage, setSaveMessage] = useState('')
+  const [assetMessage, setAssetMessage] = useState('')
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [previewImage, setPreviewImage] = useState<{
+    url: string
+    alt: string
+  } | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-  useEffect(() => {
+  const loadProject = useCallback(async () => {
     let cancelled = false
 
-    const loadProject = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+    try {
+      if (!params.id) {
+        return
+      }
 
-        const accessToken = session?.access_token
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-        if (!accessToken) {
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        if (!cancelled) {
           setError('Please log in first')
-          return
         }
+        return
+      }
 
-        const res = await fetch(`/api/projects/${params.id}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+      const res = await fetch(`/api/projects/${params.id}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        if (!cancelled) {
+          setError(json.error || 'Failed to load project')
+        }
+        return
+      }
+
+      if (!cancelled) {
+        const data = json.data as ProjectResponse
+        setProjectData(data)
+        setError('')
+        setBriefDraft({
+          product_name: data.project.product_name || '',
+          product_url: data.project.product_url || '',
+          selling_points: data.project.selling_points || '',
         })
 
-        const json = await res.json()
+        const primaryPlatform = platformSections.find(
+          (item) => item.toLowerCase() === data.project.platform.toLowerCase()
+        )
 
-        if (!res.ok) {
-          if (!cancelled) {
-            setError(json.error || 'Failed to load project')
-          }
-          return
-        }
-
-        if (!cancelled) {
-          const data = json.data as ProjectResponse
-          setProjectData(data)
-          setBriefDraft({
-            product_name: data.project.product_name || '',
-            product_url: data.project.product_url || '',
-            selling_points: data.project.selling_points || '',
-          })
-
-          const primaryPlatform = platformSections.find(
-            (item) => item.toLowerCase() === data.project.platform.toLowerCase()
-          )
-
-          if (primaryPlatform) {
-            setOpenPlatform(primaryPlatform)
-          }
-        }
-      } catch (err: unknown) {
-        if (!cancelled) {
-          setError(formatLoadError(err, 'Failed to load project'))
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
+        if (primaryPlatform) {
+          setOpenPlatform(primaryPlatform)
         }
       }
-    }
-
-    if (params.id) {
-      loadProject()
+    } catch (err: unknown) {
+      if (!cancelled) {
+        setError(formatLoadError(err, 'Failed to load project'))
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false)
+      }
     }
 
     return () => {
       cancelled = true
     }
   }, [params.id])
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined
+
+    if (params.id) {
+      void loadProject().then((result) => {
+        cleanup = result
+      })
+    }
+
+    return () => {
+      cleanup?.()
+    }
+  }, [loadProject, params.id])
 
   const saveProjectField = async (
     field: 'product_name' | 'product_url' | 'selling_points'
@@ -216,6 +278,81 @@ export default function ProjectDetailPage() {
     }
   }, [projectData])
 
+  const remainingImageSlots = Math.max(
+    0,
+    MAX_PRODUCT_IMAGES - (derived?.productImageAssets.length || 0)
+  )
+
+  const handleAddImages = async (files: FileList | null) => {
+    if (!files || !projectData || remainingImageSlots <= 0) {
+      return
+    }
+
+    const selectedFiles = Array.from(files).filter((file) => file.type.startsWith('image/'))
+
+    if (selectedFiles.length === 0) {
+      setAssetMessage('Please choose image files.')
+      return
+    }
+
+    const filesToUpload = selectedFiles.slice(0, remainingImageSlots)
+
+    try {
+      setUploadingImages(true)
+      setAssetMessage('')
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const accessToken = session?.access_token
+      const userId = session?.user?.id
+
+      if (!accessToken || !userId) {
+        throw new Error('Please log in first')
+      }
+
+      const uploadedAssets = await uploadProjectFiles({
+        userId,
+        files: filesToUpload,
+        assetType: 'product_image',
+      })
+
+      const res = await fetch(`/api/projects/${params.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          uploadedAssets,
+        }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to add images')
+      }
+
+      if (selectedFiles.length > filesToUpload.length) {
+        setAssetMessage(`Added ${filesToUpload.length} images. Max ${MAX_PRODUCT_IMAGES} images per project.`)
+      } else {
+        setAssetMessage('Images added')
+      }
+
+      setLoading(true)
+      await loadProject()
+    } catch (err: unknown) {
+      setAssetMessage(err instanceof Error ? err.message : 'Failed to add images')
+    } finally {
+      setUploadingImages(false)
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ''
+      }
+    }
+  }
+
   if (loading) {
     return <main className="py-10 text-white/60">Loading project...</main>
   }
@@ -296,30 +433,6 @@ export default function ProjectDetailPage() {
               >
                 Inputs
               </button>
-
-              <div className="mt-1 space-y-1 pl-3">
-                {[
-                  { key: 'brief', label: 'Brief' },
-                  { key: 'images', label: 'Images' },
-                  { key: 'videos', label: 'Videos' },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => {
-                      setSidebarSection('inputs')
-                      setInputsTab(item.key as InputsTab)
-                    }}
-                    className={
-                      sidebarSection === 'inputs' && inputsTab === item.key
-                        ? 'theme-subtle block w-full rounded-[0.95rem] px-3 py-2 text-left text-sm font-medium theme-text'
-                        : 'block w-full rounded-[0.95rem] px-3 py-2 text-left text-sm font-medium text-white/50 transition hover:bg-white/[0.04] hover:text-white'
-                    }
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div>
@@ -360,141 +473,194 @@ export default function ProjectDetailPage() {
 
         <section className="min-w-0 space-y-5">
           {sidebarSection === 'inputs' ? (
-            <>
-              {inputsTab === 'brief' ? (
-                <div className="panel rounded-[1.8rem] p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
-                        Input brief
-                      </div>
-                      <div className="mt-2 text-xl font-bold text-white">Project inputs</div>
+            <div className="space-y-5">
+              <div className="panel rounded-[1.8rem] p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
+                      Project inputs
                     </div>
-                    <div className="text-[11px] uppercase tracking-[0.16em] text-white/40">
-                      {savingField ? 'Saving...' : saveMessage || 'Inline edit'}
-                    </div>
+                    <div className="mt-2 text-xl font-bold text-white">Brief</div>
                   </div>
-
-                  <div className="mt-6 grid gap-5">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
-                        Product name
-                      </div>
-                      <input
-                        type="text"
-                        value={briefDraft.product_name}
-                        onChange={(event) =>
-                          setBriefDraft((current) => ({
-                            ...current,
-                            product_name: event.target.value,
-                          }))
-                        }
-                        onBlur={() => void saveProjectField('product_name')}
-                        className="field mt-2 h-11 text-sm font-semibold"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
-                        Product URL
-                      </div>
-                      <input
-                        type="url"
-                        value={briefDraft.product_url}
-                        onChange={(event) =>
-                          setBriefDraft((current) => ({
-                            ...current,
-                            product_url: event.target.value,
-                          }))
-                        }
-                        onBlur={() => void saveProjectField('product_url')}
-                        placeholder="Paste source product URL"
-                        className="field mt-2 h-11 text-sm"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
-                        Selling points
-                      </div>
-                      <textarea
-                        value={briefDraft.selling_points}
-                        onChange={(event) =>
-                          setBriefDraft((current) => ({
-                            ...current,
-                            selling_points: event.target.value,
-                          }))
-                        }
-                        onBlur={() => void saveProjectField('selling_points')}
-                        rows={10}
-                        className="field mt-2 min-h-[220px] resize-y text-sm leading-6"
-                      />
-                    </div>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-white/40">
+                    {savingField ? 'Saving...' : saveMessage || 'Inline edit'}
                   </div>
                 </div>
-              ) : null}
 
-              {inputsTab === 'images' ? (
-                <div className="panel rounded-[1.8rem] p-6">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
-                    Input images
+                <div className="mt-6 grid gap-5">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
+                      Product name
+                    </div>
+                    <input
+                      type="text"
+                      value={briefDraft.product_name}
+                      onChange={(event) =>
+                        setBriefDraft((current) => ({
+                          ...current,
+                          product_name: event.target.value,
+                        }))
+                      }
+                      onBlur={() => void saveProjectField('product_name')}
+                      className="field mt-2 h-11 text-sm font-semibold"
+                    />
                   </div>
-                  <div className="mt-2 text-xl font-bold text-white">Uploaded product images</div>
 
-                  <div className="mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                    {derived.productImageAssets.length > 0 ? (
-                      derived.productImageAssets.map((item) => (
-                        <div
-                          key={item.id}
-                          className="overflow-hidden rounded-[1.2rem] border border-white/8 bg-black/20"
-                        >
-                          {item.signed_url ? (
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
+                      Product URL
+                    </div>
+                    <input
+                      type="url"
+                      value={briefDraft.product_url}
+                      onChange={(event) =>
+                        setBriefDraft((current) => ({
+                          ...current,
+                          product_url: event.target.value,
+                        }))
+                      }
+                      onBlur={() => void saveProjectField('product_url')}
+                      placeholder="Paste source product URL"
+                      className="field mt-2 h-11 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-white/30">
+                      Selling points
+                    </div>
+                    <textarea
+                      value={briefDraft.selling_points}
+                      onChange={(event) =>
+                        setBriefDraft((current) => ({
+                          ...current,
+                          selling_points: event.target.value,
+                        }))
+                      }
+                      onBlur={() => void saveProjectField('selling_points')}
+                      rows={10}
+                      className="field mt-2 min-h-[220px] resize-y text-sm leading-6"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="panel rounded-[1.8rem] p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
+                      Input images
+                    </div>
+                    <div className="mt-2 text-xl font-bold text-white">Product images</div>
+                    <div className="mt-2 text-xs text-white/45">
+                      {derived.productImageAssets.length} / {MAX_PRODUCT_IMAGES} added
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(event) => void handleAddImages(event.target.files)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImages || remainingImageSlots <= 0}
+                      className="theme-subtle cursor-pointer rounded-full border border-white/10 px-3 py-2 text-sm font-semibold theme-text transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {uploadingImages ? 'Adding...' : '+ Add image'}
+                    </button>
+                  </div>
+                </div>
+
+                {assetMessage ? (
+                  <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-white/62">
+                    {assetMessage}
+                  </div>
+                ) : null}
+
+                <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                  {derived.productImageAssets.length > 0 ? (
+                    derived.productImageAssets.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() =>
+                          item.signed_url
+                            ? setPreviewImage({
+                                url: item.signed_url,
+                                alt: item.file_name || 'Product image',
+                              })
+                            : undefined
+                        }
+                        className="group overflow-hidden rounded-[1rem] border border-white/8 bg-black/20 text-left transition hover:border-white/20"
+                      >
+                        {item.signed_url ? (
+                          <>
                             <img
                               src={item.signed_url}
                               alt={item.file_name || 'Product image'}
                               className="aspect-square w-full object-cover"
                             />
-                          ) : (
-                            <div className="px-4 py-10 text-center text-sm text-white/45">
-                              Preview unavailable
+                            <div className="px-3 py-2">
+                              <div className="truncate text-xs font-medium text-white/75">
+                                {item.file_name || 'Product image'}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-white/50">No product images uploaded yet.</div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
+                          </>
+                        ) : (
+                          <div className="aspect-square px-4 py-10 text-center text-sm text-white/45">
+                            Preview unavailable
+                          </div>
+                        )}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-sm text-white/50">No product images uploaded yet.</div>
+                  )}
 
-              {inputsTab === 'videos' ? (
-                <div className="panel rounded-[1.8rem] p-6">
-                  <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
-                    Input videos
-                  </div>
-                  <div className="mt-2 text-xl font-bold text-white">Reference videos</div>
-
-                  <div className="mt-6 grid gap-3">
-                    {derived.referenceVideoAssets.length > 0 ? (
-                      derived.referenceVideoAssets.map((item) => (
-                        <a
-                          key={item.id}
-                          href={item.signed_url || '#'}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded-[1rem] border border-white/8 bg-white/[0.02] px-4 py-4 text-sm text-white/72 transition hover:bg-white/[0.04]"
-                        >
-                          {item.file_name || 'Reference video'}
-                        </a>
-                      ))
-                    ) : (
-                      <div className="text-sm text-white/50">No reference videos uploaded yet.</div>
-                    )}
-                  </div>
+                  {remainingImageSlots > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImages}
+                      className="flex aspect-square cursor-pointer items-center justify-center rounded-[1rem] border border-dashed border-white/12 bg-white/[0.02] text-sm font-semibold text-white/58 transition hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      + Add
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
-            </>
+              </div>
+
+              <div className="panel rounded-[1.8rem] p-6">
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-white/36">
+                  Input videos
+                </div>
+                <div className="mt-2 text-xl font-bold text-white">Reference videos</div>
+
+                <div className="mt-6 grid gap-3">
+                  {derived.referenceVideoAssets.length > 0 ? (
+                    derived.referenceVideoAssets.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.signed_url || '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[1rem] border border-white/8 bg-white/[0.02] px-4 py-4 text-sm text-white/72 transition hover:bg-white/[0.04]"
+                      >
+                        {item.file_name || 'Reference video'}
+                      </a>
+                    ))
+                  ) : (
+                    <div className="text-sm text-white/50">No reference videos uploaded yet.</div>
+                  )}
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               <div className="panel rounded-[1.8rem] p-6">
@@ -701,6 +867,34 @@ export default function ProjectDetailPage() {
           )}
         </section>
       </section>
+
+      {previewImage ? (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/72 px-6 py-10"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="panel-strong max-h-full w-full max-w-5xl rounded-[1.5rem] p-4"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <div className="truncate text-sm font-medium text-white/72">{previewImage.alt}</div>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="theme-subtle cursor-pointer rounded-full px-3 py-1.5 text-sm theme-text"
+              >
+                Close
+              </button>
+            </div>
+            <img
+              src={previewImage.url}
+              alt={previewImage.alt}
+              className="max-h-[78vh] w-full rounded-[1rem] object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

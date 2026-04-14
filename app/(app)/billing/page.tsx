@@ -19,6 +19,20 @@ type UsageData = {
   members_included?: number
 }
 
+type DeletionWorkspaceSummary = {
+  brandId: string
+  brandName: string
+  memberCount: number
+}
+
+type DeleteCheckData = {
+  mode: 'full' | 'partial' | 'blocked'
+  canDelete: boolean
+  ownedSoloWorkspaces: DeletionWorkspaceSummary[]
+  ownedSharedWorkspaces: DeletionWorkspaceSummary[]
+  joinedWorkspaces: DeletionWorkspaceSummary[]
+}
+
 export default function BillingPage() {
   const [user, setUser] = useState<User | null>(null)
   const [usage, setUsage] = useState<UsageData | null>(null)
@@ -30,6 +44,11 @@ export default function BillingPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null)
+  const [deleteCheck, setDeleteCheck] = useState<DeleteCheckData | null>(null)
+  const [deleteInput, setDeleteInput] = useState('')
+  const [deleteMessage, setDeleteMessage] = useState('')
+  const [loadingDeleteCheck, setLoadingDeleteCheck] = useState(true)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   useEffect(() => {
     setActiveBrandId(getStoredActiveBrandId())
@@ -47,7 +66,10 @@ export default function BillingPage() {
       setUser(currentUser)
       setDisplayName(currentUser?.user_metadata?.display_name?.toString() || '')
 
-      if (!currentUser) return
+      if (!currentUser) {
+        setLoadingDeleteCheck(false)
+        return
+      }
 
       const {
         data: { session },
@@ -66,6 +88,19 @@ export default function BillingPage() {
       if (json?.data) {
         setUsage(json.data)
       }
+
+      const deleteCheckRes = await fetch('/api/account/delete-check', {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      })
+      const deleteCheckJson = await deleteCheckRes.json()
+
+      if (deleteCheckJson?.data) {
+        setDeleteCheck(deleteCheckJson.data)
+      }
+
+      setLoadingDeleteCheck(false)
     }
 
     load()
@@ -125,6 +160,47 @@ export default function BillingPage() {
     setNewPassword('')
     setConfirmPassword('')
     setSecurityMessage('Password updated.')
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteInput.trim().toUpperCase() !== 'DELETE') {
+      setDeleteMessage('Type DELETE to confirm.')
+      return
+    }
+
+    try {
+      setDeletingAccount(true)
+      setDeleteMessage('')
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          confirmation: deleteInput,
+        }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        setDeleteMessage(json.error || 'Failed to delete account.')
+        return
+      }
+
+      await supabase.auth.signOut()
+      window.location.href = '/'
+    } catch (error: unknown) {
+      setDeleteMessage(error instanceof Error ? error.message : 'Failed to delete account.')
+    } finally {
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -249,6 +325,104 @@ export default function BillingPage() {
               <div className="mt-2 text-sm leading-7 text-white/58">
                 Good future fits here: API keys, export defaults, team seats, billing contacts, invoice history, and usage alerts.
               </div>
+            </div>
+            <div className="rounded-[1.3rem] border border-red-400/20 bg-red-400/6 p-4">
+              <div className="text-xs uppercase tracking-[0.18em] text-red-200/70">Danger zone</div>
+              <div className="mt-2 text-lg font-semibold text-white">Delete account</div>
+              <div className="mt-3 space-y-3 text-sm leading-7 text-white/60">
+                {loadingDeleteCheck ? (
+                  <div>Checking workspace ownership rules...</div>
+                ) : deleteCheck?.mode === 'blocked' ? (
+                  <>
+                    <div>
+                      You still own a shared workspace. Transfer ownership or delete that workspace first.
+                    </div>
+                    <div className="space-y-2">
+                      {deleteCheck.ownedSharedWorkspaces.map((workspace) => (
+                        <div
+                          key={workspace.brandId}
+                          className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-white/70"
+                        >
+                          {workspace.brandName} · {workspace.memberCount} members
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      {deleteCheck?.mode === 'full'
+                        ? 'Deleting this account will remove your personal workspace data and account profile.'
+                        : 'Deleting this account will remove your access from shared workspaces and delete any solo workspaces you own by yourself.'}
+                    </div>
+
+                    {deleteCheck?.ownedSoloWorkspaces.length ? (
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/40">
+                          Workspaces that will be deleted
+                        </div>
+                        <div className="space-y-2">
+                          {deleteCheck.ownedSoloWorkspaces.map((workspace) => (
+                            <div
+                              key={workspace.brandId}
+                              className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-white/70"
+                            >
+                              {workspace.brandName}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {deleteCheck?.joinedWorkspaces.length ? (
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.16em] text-white/40">
+                          Shared workspaces you will leave
+                        </div>
+                        <div className="space-y-2">
+                          {deleteCheck.joinedWorkspaces.map((workspace) => (
+                            <div
+                              key={workspace.brandId}
+                              className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-white/70"
+                            >
+                              {workspace.brandName} · {workspace.memberCount} members
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+
+              {deleteCheck?.mode !== 'blocked' ? (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="text"
+                    value={deleteInput}
+                    onChange={(event) => setDeleteInput(event.target.value)}
+                    placeholder="Type DELETE to confirm"
+                    className="field"
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                      className="rounded-[1rem] border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm font-semibold text-red-100 transition hover:bg-red-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingAccount ? 'Deleting account...' : 'Delete account'}
+                    </button>
+                    <div className="text-sm text-white/54">
+                      {deleteMessage || 'This action is permanent.'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 text-sm text-white/52">
+                  Go to workspace settings and either transfer ownership or delete the shared workspace first.
+                </div>
+              )}
             </div>
           </div>
         </div>

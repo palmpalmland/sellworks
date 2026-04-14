@@ -2,7 +2,7 @@ export type ProjectStatus = "draft" | "processing" | "completed" | "failed";
 
 export type ProjectRecord = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   brand_id: string | null;
   product_name: string;
   selling_points: string;

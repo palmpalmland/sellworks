@@ -29,7 +29,46 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sellworks-sidebar-collapsed'
 type NavLinkItem = {
   href: string
   label: string
-  icon: string
+  icon: React.ReactNode
+}
+
+function DashboardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-[18px] w-[18px]">
+      <rect x="3" y="3" width="8" height="8" rx="2" />
+      <rect x="13" y="3" width="8" height="5" rx="2" />
+      <rect x="13" y="10" width="8" height="11" rx="2" />
+      <rect x="3" y="13" width="8" height="8" rx="2" />
+    </svg>
+  )
+}
+
+function ProjectsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-[18px] w-[18px]">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l1.6 2H18.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" />
+      <path d="M3 9h18" />
+    </svg>
+  )
+}
+
+function AssetsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-[18px] w-[18px]">
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <path d="M3 10h18" />
+      <path d="M9 4v16" />
+    </svg>
+  )
+}
+
+function AccountIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-[18px] w-[18px]">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 19a7 7 0 0 1 14 0" />
+    </svg>
+  )
 }
 
 export default function AppShell({ children }: AppShellProps) {
@@ -219,11 +258,18 @@ export default function AppShell({ children }: AppShellProps) {
     }
   }
 
-  const links: NavLinkItem[] = [
+  const legacyLinks: NavLinkItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: '⌂' },
     { href: '/projects', label: 'Projects', icon: '▣' },
     { href: '/assets', label: 'Assets', icon: '◫' },
     { href: '/billing', label: 'Account', icon: '○' },
+  ]
+
+  const links: NavLinkItem[] = [
+    { href: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { href: '/projects', label: 'Projects', icon: <ProjectsIcon /> },
+    { href: '/assets', label: 'Assets', icon: <AssetsIcon /> },
+    { href: '/billing', label: 'Account', icon: <AccountIcon /> },
   ]
 
   const isBrandSettingsRoute = pathname.startsWith('/brand')
@@ -251,7 +297,7 @@ export default function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setBrandMenuOpen((current) => !current)}
-                className="theme-subtle-hover flex h-10 min-w-[220px] items-center gap-2.5 rounded-full border px-3 text-left transition"
+                className="theme-subtle-hover flex h-10 min-w-[220px] cursor-pointer items-center gap-2.5 rounded-full border px-3 text-left transition"
               >
                 <div className="theme-subtle flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold theme-text">
                   {(brand?.name || 'B').slice(0, 1).toUpperCase()}
@@ -318,7 +364,7 @@ export default function AppShell({ children }: AppShellProps) {
                         setCreateBrandOpen(true)
                         setBrandActionMessage('')
                       }}
-                      className="theme-text-muted flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left transition hover:bg-white/[0.04] hover:text-white/70"
+                      className="theme-text-muted flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left transition hover:bg-white/[0.04] hover:text-white/70"
                     >
                       <span className="text-lg leading-none">+</span>
                       <span className="text-sm font-medium">Create new brand space</span>
@@ -336,10 +382,10 @@ export default function AppShell({ children }: AppShellProps) {
                         className="field mt-3"
                       />
                       <div className="mt-3 flex gap-2">
-                        <button type="button" onClick={handleCreateBrand} disabled={brandActionLoading} className="cta-primary w-full text-sm">
+                        <button type="button" onClick={handleCreateBrand} disabled={brandActionLoading} className="cta-primary w-full cursor-pointer text-sm">
                           {brandActionLoading ? 'Creating...' : 'Create'}
                         </button>
-                        <button type="button" onClick={() => setCreateBrandOpen(false)} className="cta-secondary w-full text-sm">
+                        <button type="button" onClick={() => setCreateBrandOpen(false)} className="cta-secondary w-full cursor-pointer text-sm">
                           Cancel
                         </button>
                       </div>
@@ -361,31 +407,31 @@ export default function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setCreateMenuOpen((current) => !current)}
-                className="cta-primary h-10 gap-2 rounded-full px-4 text-sm"
+                className="cta-primary h-10 cursor-pointer gap-2 rounded-full px-4 text-sm"
               >
                 <span className="text-base leading-none">+</span>
                 <span>New</span>
               </button>
 
-              {createMenuOpen ? (
-                <div className="theme-surface absolute right-0 top-12 z-50 w-[220px] rounded-[1.2rem] border p-2 shadow-2xl">
-                  <Link
-                    href="/generate"
-                    onClick={() => setCreateMenuOpen(false)}
-                    className="theme-text flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm font-medium transition hover:bg-white/[0.04]"
-                  >
-                    <span>New project</span>
-                    <span className="theme-text-muted text-xs">Generate</span>
-                  </Link>
-                  <Link
-                    href="/assets"
-                    onClick={() => setCreateMenuOpen(false)}
-                    className="theme-text flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm font-medium transition hover:bg-white/[0.04]"
-                  >
-                    <span>New asset</span>
-                    <span className="theme-text-muted text-xs">Library</span>
-                  </Link>
-                </div>
+                {createMenuOpen ? (
+                  <div className="theme-surface absolute right-0 top-12 z-50 w-[220px] rounded-[1rem] border p-1 shadow-2xl">
+                    <Link
+                      href="/generate"
+                      onClick={() => setCreateMenuOpen(false)}
+                      className="theme-text flex w-full cursor-pointer items-center justify-between rounded-[0.75rem] px-3 py-2 text-sm font-medium transition hover:bg-[color:var(--menu-item-bg)]"
+                    >
+                      <span>New project</span>
+                      <span className="theme-text-muted text-xs">Generate</span>
+                    </Link>
+                    <Link
+                      href="/assets"
+                      onClick={() => setCreateMenuOpen(false)}
+                      className="theme-text flex w-full cursor-pointer items-center justify-between rounded-[0.75rem] px-3 py-2 text-sm font-medium transition hover:bg-[color:var(--menu-item-bg)]"
+                    >
+                      <span>New asset</span>
+                      <span className="theme-text-muted text-xs">Library</span>
+                    </Link>
+                  </div>
               ) : null}
             </div>
 
@@ -393,7 +439,7 @@ export default function AppShell({ children }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setAccountOpen((current) => !current)}
-                className="theme-subtle-hover flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold tracking-[0.12em] theme-text transition"
+                className="theme-subtle-hover flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border text-xs font-bold tracking-[0.12em] theme-text transition"
               >
                 {initials}
               </button>
@@ -421,7 +467,7 @@ export default function AppShell({ children }: AppShellProps) {
                       <button
                         type="button"
                         onClick={() => setThemeMenuOpen((current) => !current)}
-                        className="cta-secondary w-full justify-between text-sm"
+                        className="cta-secondary w-full cursor-pointer justify-between text-sm"
                       >
                         <span>Theme</span>
                         <span className="theme-text-muted text-xs">
@@ -434,7 +480,7 @@ export default function AppShell({ children }: AppShellProps) {
                       </button>
 
                       {themeMenuOpen ? (
-                        <div className="theme-surface absolute right-[calc(100%+0.75rem)] top-0 z-50 w-[220px] rounded-[1.2rem] border p-2 shadow-2xl">
+                        <div className="theme-surface absolute right-[calc(100%+0.75rem)] top-0 z-50 w-[220px] rounded-[1rem] border p-1 shadow-2xl">
                           {([
                             { value: 'light', label: 'Light' },
                             { value: 'dark', label: 'Dark' },
@@ -449,10 +495,10 @@ export default function AppShell({ children }: AppShellProps) {
                                   setThemePreference(option.value)
                                   setThemeMenuOpen(false)
                                 }}
-                                className={`flex w-full items-center justify-between rounded-[0.9rem] px-3 py-2.5 text-sm transition ${
+                                className={`flex w-full cursor-pointer items-center justify-between rounded-[0.75rem] px-3 py-2 text-sm transition ${
                                   active
                                     ? 'theme-subtle theme-text'
-                                    : 'theme-text-muted hover:bg-white/[0.04] hover:text-white'
+                                    : 'theme-text-muted hover:bg-[color:var(--menu-item-bg)] hover:text-white'
                                 }`}
                               >
                                 <span>{option.label}</span>
@@ -463,7 +509,7 @@ export default function AppShell({ children }: AppShellProps) {
                         </div>
                       ) : null}
                     </div>
-                    <button onClick={handleLogout} className="cta-secondary w-full justify-start text-sm">
+                    <button onClick={handleLogout} className="cta-secondary w-full cursor-pointer justify-start text-sm">
                       Logout
                     </button>
                   </div>
@@ -512,7 +558,7 @@ export default function AppShell({ children }: AppShellProps) {
             <button
               type="button"
               onClick={() => setSidebarCollapsed((current) => !current)}
-              className="theme-subtle theme-subtle-hover flex h-9 w-9 items-center justify-center rounded-[0.8rem] theme-text transition"
+              className="theme-subtle theme-subtle-hover flex h-9 w-9 cursor-pointer items-center justify-center rounded-[0.8rem] theme-text transition"
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
